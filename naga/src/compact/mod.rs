@@ -198,21 +198,24 @@ pub fn compact(module: &mut crate::Module) {
     }
 
     for (handle, ty) in module.types.clone().iter() {
-        if let crate::TypeInner::Array { base, size, stride } = ty.inner {
-            match size {
-                crate::ArraySize::Pending(mut size_expr) => {
-                    module_map.global_expressions.adjust(&mut size_expr);
-                    module.types.replace(handle, crate::Type {
-                        name: None,
-                        inner: crate::TypeInner::Array {
-                            base,
-                            size: crate::ArraySize::Pending(size_expr),
-                            stride,
-                        }
-                    });
-                }
-                _ => {}
-            }
+        if let crate::TypeInner::Array {
+            base,
+            size: crate::ArraySize::Pending(mut size_expr),
+            stride,
+        } = ty.inner
+        {
+            module_map.global_expressions.adjust(&mut size_expr);
+            module.types.replace(
+                handle,
+                crate::Type {
+                    name: None,
+                    inner: crate::TypeInner::Array {
+                        base,
+                        size: crate::ArraySize::Pending(size_expr),
+                        stride,
+                    },
+                },
+            );
         }
     }
 

@@ -612,6 +612,17 @@ impl Validator {
                     }
                     .with_span_handle(handle, &module.types)
                 })?;
+            if let crate::TypeInner::Array {
+                size: crate::ArraySize::Pending(_),
+                ..
+            } = ty.inner
+            {
+                return Err((ValidationError::Type {
+                    handle,
+                    name: ty.name.clone().unwrap_or_default(),
+                    source: TypeError::UnresolvedOverride(handle),
+                }).with_span_handle(handle, &module.types));
+            }
             mod_info.type_flags.push(ty_info.flags);
             self.types[handle.index()] = ty_info;
         }

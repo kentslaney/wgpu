@@ -142,6 +142,10 @@ pub enum TypeError {
     EmptyStruct,
     #[error(transparent)]
     WidthError(#[from] WidthError),
+    #[error(
+        "The base handle {0:?} has an override-expression that didn't get resolved to a constant"
+    )]
+    UnresolvedOverride(Handle<crate::Type>),
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
