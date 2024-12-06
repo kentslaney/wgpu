@@ -287,13 +287,13 @@ impl Parser {
     }
 
     fn race_rules(&self, rule0: Rule, rule1: Rule) -> Option<Rule> {
-        return Some(
+        Some(
             self.rules
                 .iter()
                 .rev()
-                .find(|&(x, _)| *x == rule0 || *x == rule1)?
+                .find(|&x| x.0 == rule0 || x.0 == rule1)?
                 .0,
-        );
+        )
     }
 
     fn switch_value<'a>(
@@ -949,7 +949,7 @@ impl Parser {
                     lexer,
                     match enclosing {
                         Some(Rule::GenericExpr) => |_| {
-                            return None;
+                            None
                         },
                         _ => |token| match token {
                             Token::Paren('<') => Some(crate::BinaryOperator::Less),
@@ -967,7 +967,7 @@ impl Parser {
                             lexer,
                             match enclosing {
                                 Some(Rule::GenericExpr) => |_| {
-                                    return None;
+                                    None
                                 },
                                 _ => |token| match token {
                                     Token::ShiftOperation('<') => {

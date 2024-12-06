@@ -64,13 +64,12 @@ pub fn compact(module: &mut crate::Module) {
     }
 
     for (_, ty) in module.types.iter() {
-        if let crate::TypeInner::Array { size, .. } = ty.inner {
-            match size {
-                crate::ArraySize::Pending(size_expr) => {
-                    module_tracer.global_expressions_used.insert(size_expr);
-                }
-                _ => {}
-            }
+        if let crate::TypeInner::Array {
+            size: crate::ArraySize::Pending(size_expr),
+            ..
+        } = ty.inner
+        {
+            module_tracer.global_expressions_used.insert(size_expr);
         }
     }
 
