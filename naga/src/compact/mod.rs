@@ -63,6 +63,17 @@ pub fn compact(module: &mut crate::Module) {
         }
     }
 
+    for (_, ty) in module.types.iter() {
+        if let crate::TypeInner::Array { size, .. } = ty.inner {
+            match size {
+                crate::ArraySize::Pending(size_expr) => {
+                    module_tracer.global_expressions_used.insert(size_expr);
+                }
+                _ => {}
+            }
+        }
+    }
+
     // We assume that all functions are used.
     //
     // Observe which types, constant expressions, constants, and
@@ -183,6 +194,25 @@ pub fn compact(module: &mut crate::Module) {
         module_map.types.adjust(&mut global.ty);
         if let Some(ref mut init) = global.init {
             module_map.global_expressions.adjust(init);
+        }
+    }
+
+    for (handle, ty) in module.types.clone().iter() {
+        if let crate::TypeInner::Array { base, size, stride } = ty.inner {
+            match size {
+                crate::ArraySize::Pending(mut size_expr) => {
+                    module_map.global_expressions.adjust(&mut size_expr);
+                    module.types.replace(handle, crate::Type {
+                        name: None,
+                        inner: crate::TypeInner::Array {
+                            base,
+                            size: crate::ArraySize::Pending(size_expr),
+                            stride,
+                        }
+                    });
+                }
+                _ => {}
+            }
         }
     }
 

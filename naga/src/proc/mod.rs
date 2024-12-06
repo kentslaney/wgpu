@@ -297,7 +297,7 @@ impl super::TypeInner {
             } => {
                 let count = match size {
                     super::ArraySize::Constant(count) => count.get(),
-                    super::ArraySize::Pending(_) => todo!(),
+                    super::ArraySize::Pending(_) => 1, // todo!(),
                     // A dynamically-sized array has to have at least one element
                     super::ArraySize::Dynamic => 1,
                 };
