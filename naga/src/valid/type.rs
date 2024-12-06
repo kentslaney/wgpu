@@ -489,7 +489,7 @@ impl super::Validator {
                 };
 
                 let type_info_mask = match size {
-                    crate::ArraySize::Constant(_) => {
+                    crate::ArraySize::Constant(_) | crate::ArraySize::Pending(_) => {
                         TypeFlags::DATA
                             | TypeFlags::SIZED
                             | TypeFlags::COPY
@@ -665,7 +665,9 @@ impl super::Validator {
             }
             Ti::BindingArray { base, size } => {
                 let type_info_mask = match size {
-                    crate::ArraySize::Constant(_) => TypeFlags::SIZED | TypeFlags::HOST_SHAREABLE,
+                    crate::ArraySize::Constant(_) | crate::ArraySize::Pending(_) => {
+                        TypeFlags::SIZED | TypeFlags::HOST_SHAREABLE
+                    }
                     crate::ArraySize::Dynamic => {
                         // Final type is non-sized
                         TypeFlags::HOST_SHAREABLE

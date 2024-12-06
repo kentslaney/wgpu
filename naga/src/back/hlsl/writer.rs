@@ -988,6 +988,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
             crate::ArraySize::Constant(size) => {
                 write!(self.out, "{size}")?;
             }
+            crate::ArraySize::Pending(_) => unreachable!(),
             crate::ArraySize::Dynamic => unreachable!(),
         }
 

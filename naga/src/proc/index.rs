@@ -430,6 +430,7 @@ impl crate::ArraySize {
     ) -> Result<IndexableLength, IndexableLengthError> {
         Ok(match self {
             Self::Constant(length) => IndexableLength::Known(length.get()),
+            Self::Pending(_) => todo!(),
             Self::Dynamic => IndexableLength::Dynamic,
         })
     }

@@ -977,6 +977,7 @@ impl<'a, W: Write> Writer<'a, W> {
             crate::ArraySize::Constant(size) => {
                 write!(self.out, "{size}")?;
             }
+            crate::ArraySize::Pending(_) => unreachable!(),
             crate::ArraySize::Dynamic => (),
         }
 

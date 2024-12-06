@@ -1311,6 +1311,7 @@ impl<'a> ConstantEvaluator<'a> {
                             let expr = Expression::Literal(Literal::U32(len.get()));
                             self.register_evaluated_expr(expr, span)
                         }
+                        ArraySize::Pending(_) => todo!(),
                         ArraySize::Dynamic => Err(ConstantEvaluatorError::ArrayLengthDynamic),
                     },
                     _ => Err(ConstantEvaluatorError::InvalidArrayLengthArg),

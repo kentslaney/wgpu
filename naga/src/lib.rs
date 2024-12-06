@@ -495,6 +495,8 @@ pub struct Scalar {
 pub enum ArraySize {
     /// The array size is constant.
     Constant(std::num::NonZeroU32),
+    /// The array size is an override-expression.
+    Pending(Handle<Expression>),
     /// The array size can change at runtime.
     Dynamic,
 }

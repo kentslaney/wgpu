@@ -3740,6 +3740,9 @@ impl<W: Write> Writer<W> {
                             )?;
                             writeln!(self.out, "}};")?;
                         }
+                        crate::ArraySize::Pending(_) => {
+                            unreachable!()
+                        }
                         crate::ArraySize::Dynamic => {
                             writeln!(self.out, "typedef {base_name} {name}[1];")?;
                         }
