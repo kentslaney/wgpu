@@ -193,6 +193,8 @@ pub fn process_overrides<'a>(
     }
     module.entry_points = entry_points;
 
+    process_pending(&mut module, &adjusted_global_expressions)?;
+
     // Now that we've rewritten all the expressions, we need to
     // recompute their types and other metadata. For the time being,
     // do a full re-validation.
@@ -200,6 +202,56 @@ pub fn process_overrides<'a>(
     let module_info = validator.validate_no_overrides(&module)?;
 
     Ok((Cow::Owned(module), Cow::Owned(module_info)))
+}
+
+fn process_pending(
+    module: &mut Module,
+    adjusted_global_expressions: &HandleVec<Expression, Handle<Expression>>,
+) -> Result<(), PipelineConstantError> {
+    for (handle, ty) in module.types.clone().iter() {
+        if let crate::TypeInner::Array {
+            base,
+            size: crate::ArraySize::Pending(size_expr),
+            stride,
+        } = ty.inner
+        {
+            let expr = adjusted_global_expressions[size_expr];
+            let value = module
+                .to_ctx()
+                .eval_expr_to_u32(expr)
+                .map(|n| {
+                    if n == 0 {
+                        Err(PipelineConstantError::ValidationError(
+                            WithSpan::new(ValidationError::ArraySizeError { handle: expr })
+                                .with_span(
+                                    module.global_expressions.get_span(expr),
+                                    "evaluated to zero",
+                                ),
+                        ))
+                    } else {
+                        Ok(std::num::NonZeroU32::new(n).unwrap())
+                    }
+                })
+                .map_err(|_| {
+                    PipelineConstantError::ValidationError(
+                        WithSpan::new(ValidationError::ArraySizeError { handle: expr })
+                            .with_span(module.global_expressions.get_span(expr), "negative"),
+                    )
+                })??;
+            module.types.replace(
+                handle,
+                crate::Type {
+                    name: None,
+                    inner: crate::TypeInner::Array {
+                        base,
+                        size: crate::ArraySize::Constant(value),
+                        stride,
+                    },
+                },
+            );
+        }
+    }
+    Ok(())
 }
 
 /// Add a [`Constant`] to `module` for the override `old_h`.
