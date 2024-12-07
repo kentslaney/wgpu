@@ -253,6 +253,7 @@ An override expression can be evaluated at pipeline creation time.
 mod arena;
 pub mod back;
 mod block;
+pub mod common;
 #[cfg(feature = "compact")]
 pub mod compact;
 pub mod diagnostic_filter;
@@ -2188,6 +2189,8 @@ pub struct EntryPoint {
     pub early_depth_test: Option<EarlyDepthTest>,
     /// Workgroup size for compute stages
     pub workgroup_size: [u32; 3],
+    /// Override expressions for workgroup size in the global_expressions arena
+    pub workgroup_size_overrides: Option<[Option<Handle<Expression>>; 3]>,
     /// The entrance function.
     pub function: Function,
 }
