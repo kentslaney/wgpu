@@ -948,7 +948,13 @@ impl Parser {
                 context.parse_binary_op(
                     lexer,
                     match enclosing {
-                        Some(Rule::GenericExpr) => |_| None,
+                        Some(Rule::GenericExpr) => |token| match token {
+                            Token::LogicalOperation('<') => Some(crate::BinaryOperator::LessEqual),
+                            Token::LogicalOperation('>') => {
+                                Some(crate::BinaryOperator::GreaterEqual)
+                            }
+                            _ => None,
+                        },
                         _ => |token| match token {
                             Token::Paren('<') => Some(crate::BinaryOperator::Less),
                             Token::Paren('>') => Some(crate::BinaryOperator::Greater),
@@ -964,7 +970,12 @@ impl Parser {
                         context.parse_binary_op(
                             lexer,
                             match enclosing {
-                                Some(Rule::GenericExpr) => |_| None,
+                                Some(Rule::GenericExpr) => |token| match token {
+                                    Token::ShiftOperation('<') => {
+                                        Some(crate::BinaryOperator::ShiftLeft)
+                                    }
+                                    _ => None,
+                                },
                                 _ => |token| match token {
                                     Token::ShiftOperation('<') => {
                                         Some(crate::BinaryOperator::ShiftLeft)
