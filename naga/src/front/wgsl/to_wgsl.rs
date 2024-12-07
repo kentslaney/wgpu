@@ -67,7 +67,7 @@ impl crate::TypeInner {
                 let base = base.to_wgsl(gctx);
                 match size {
                     crate::ArraySize::Constant(size) => format!("array<{base}, {size}>"),
-                    crate::ArraySize::Pending(_) => todo!(),
+                    crate::ArraySize::Pending(_) => unreachable!(),
                     crate::ArraySize::Dynamic => format!("array<{base}>"),
                 }
             }
@@ -124,7 +124,7 @@ impl crate::TypeInner {
                 let base = member_type.name.as_deref().unwrap_or("unknown");
                 match size {
                     crate::ArraySize::Constant(size) => format!("binding_array<{base}, {size}>"),
-                    crate::ArraySize::Pending(_) => todo!(),
+                    crate::ArraySize::Pending(_) => unreachable!(),
                     crate::ArraySize::Dynamic => format!("binding_array<{base}>"),
                 }
             }
