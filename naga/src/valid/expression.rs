@@ -1690,10 +1690,6 @@ impl super::Validator {
                         return Err(ExpressionError::InvalidArrayType(expr));
                     }
                 }
-                Ti::Array {
-                    size: crate::ArraySize::Pending(_),
-                    ..
-                } => ShaderStages::all(),
                 ref other => {
                     log::error!("Array length of {:?}", other);
                     return Err(ExpressionError::InvalidArrayType(expr));

@@ -4,7 +4,7 @@ use wgpu::{BufferDescriptor, BufferUsages, Maintain, MapMode};
 use wgpu_test::{fail_if, gpu_test, GpuTestConfiguration, TestParameters, TestingContext};
 
 const SHADER: &str = r#"
-    override n = 3;
+    override n = 8;
 
     var<workgroup> arr: array<u32, n - 2>;
 
@@ -12,7 +12,21 @@ const SHADER: &str = r#"
     var<storage, read_write> output: array<u32>;
 
     @compute @workgroup_size(1) fn main() {
-        output[0] = arrayLength(arr);
+        // 1d spiral
+        for (var i = 0; i < n - 2; i++) {
+            arr[i] = n - 2 - i;
+            if (i + 1 < round((n + (n % 2)) / 2)) {
+                arr[i] -= 1;
+            }
+        }
+        var i = 0;
+        var j = -1;
+        while (i != j) {
+            // non-commutative
+            output[0] = output[0] * arr[i] + arr[i];
+            j = i;
+            i = arr[i];
+        }
     }
 "#;
 
@@ -20,8 +34,8 @@ const SHADER: &str = r#"
 static ARRAY_SIZE_OVERRIDES: GpuTestConfiguration = GpuTestConfiguration::new()
     .parameters(TestParameters::default().limits(wgpu::Limits::default()))
     .run_async(move |ctx| async move {
-        array_size_overrides(&ctx, None, &[1], false).await;
-        array_size_overrides(&ctx, Some(4), &[2], false).await;
+        array_size_overrides(&ctx, None, &[534], false).await;
+        array_size_overrides(&ctx, Some(14), &[286480122], false).await;
         array_size_overrides(&ctx, Some(1), &[0], true).await;
     });
 
