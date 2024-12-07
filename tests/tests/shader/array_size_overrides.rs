@@ -14,13 +14,13 @@ const SHADER: &str = r#"
     @compute @workgroup_size(1) fn main() {
         // 1d spiral
         for (var i = 0; i < n - 2; i++) {
-            arr[i] = n - 2 - i;
-            if (i + 1 < round((n + (n % 2)) / 2)) {
-                arr[i] -= 1;
+            arr[i] = u32(n - 2 - i);
+            if (i + 1 < (n + (n % 2)) / 2) {
+                arr[i] -= 1u;
             }
         }
-        var i = 0;
-        var j = -1;
+        var i = 0u;
+        var j = 1u;
         while (i != j) {
             // non-commutative
             output[0] = output[0] * arr[i] + arr[i];

@@ -2635,6 +2635,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                             index::IndexableLength::Known(limit) => {
                                 write!(self.out, "{}u", limit - 1)?;
                             }
+                            index::IndexableLength::Pending => unreachable!(),
                             index::IndexableLength::Dynamic => unreachable!(),
                         }
                         write!(self.out, ")")?;

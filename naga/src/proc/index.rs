@@ -419,6 +419,8 @@ pub enum IndexableLength {
     /// Values of this type always have the given number of elements.
     Known(u32),
 
+    Pending,
+
     /// The number of elements is determined at runtime.
     Dynamic,
 }
@@ -430,7 +432,7 @@ impl crate::ArraySize {
     ) -> Result<IndexableLength, IndexableLengthError> {
         Ok(match self {
             Self::Constant(length) => IndexableLength::Known(length.get()),
-            Self::Pending(_) => todo!(),
+            Self::Pending(_) => IndexableLength::Pending,
             Self::Dynamic => IndexableLength::Dynamic,
         })
     }
