@@ -214,7 +214,7 @@ fn process_pending(
     for (handle, ty) in module.types.clone().iter() {
         if let crate::TypeInner::Array {
             base,
-            size: crate::ArraySize::Pending(size_expr),
+            size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(size_expr)),
             stride,
         } = ty.inner
         {

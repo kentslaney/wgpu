@@ -3087,10 +3087,16 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
         size_expr: Handle<ast::Expression<'source>>,
         ctx: &mut ExpressionContext<'source, '_, '_>,
         span: Span,
-    ) -> Result<Handle<crate::Expression>, Error<'source>> {
+    ) -> Result<crate::PendingArraySize, Error<'source>> {
         let expr = self.expression(size_expr, ctx)?;
         match resolve_inner!(ctx, expr).scalar_kind().ok_or(0) {
-            Ok(crate::ScalarKind::Sint) | Ok(crate::ScalarKind::Uint) => Ok(expr),
+            Ok(crate::ScalarKind::Sint) | Ok(crate::ScalarKind::Uint) => Ok({
+                if let crate::Expression::Override(handle) = ctx.module.global_expressions[expr] {
+                    crate::PendingArraySize::Override(handle)
+                } else {
+                    crate::PendingArraySize::Expression(expr)
+                }
+            }),
             _ => Err(Error::ExpectedConstExprConcreteIntegerScalar(span)),
         }
     }
