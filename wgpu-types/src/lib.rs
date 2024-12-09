@@ -180,6 +180,7 @@ pub struct RequestAdapterOptions<S> {
     pub force_fallback_adapter: bool,
     /// Surface that is required to be presentable with the requested adapter. This does not
     /// create the surface, only guarantees that the adapter can present to said surface.
+    /// For WebGL, this is strictly required, as an adapter can not be created without a surface.
     pub compatible_surface: Option<S>,
 }
 
@@ -5642,6 +5643,8 @@ pub enum SurfaceStatus {
     Outdated,
     /// The surface under the swap chain is lost.
     Lost,
+    /// The surface status is not known since `get_current_texture` previously failed.
+    Unknown,
 }
 
 /// Nanosecond timestamp used by the presentation engine.
