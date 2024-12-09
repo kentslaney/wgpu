@@ -735,6 +735,10 @@ impl super::Validator {
                     };
                 }
 
+                if !base_info.flags.contains(TypeFlags::CREATION_RESOLVED) {
+                    return Err(TypeError::InvalidData(base));
+                }
+
                 TypeInfo::new(base_info.flags & type_info_mask, Alignment::ONE)
             }
         })
