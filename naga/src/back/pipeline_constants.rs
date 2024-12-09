@@ -196,7 +196,7 @@ pub fn process_overrides<'a>(
     }
     module.entry_points = entry_points;
 
-    process_pending(&mut module, &adjusted_global_expressions)?;
+    process_pending(&mut module, &override_map, &adjusted_global_expressions)?;
 
     // Now that we've rewritten all the expressions, we need to
     // recompute their types and other metadata. For the time being,
@@ -209,16 +209,24 @@ pub fn process_overrides<'a>(
 
 fn process_pending(
     module: &mut Module,
+    override_map: &HandleVec<Override, Handle<Constant>>,
     adjusted_global_expressions: &HandleVec<Expression, Handle<Expression>>,
 ) -> Result<(), PipelineConstantError> {
     for (handle, ty) in module.types.clone().iter() {
         if let crate::TypeInner::Array {
             base,
-            size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(size_expr)),
+            size: crate::ArraySize::Pending(size),
             stride,
         } = ty.inner
         {
-            let expr = adjusted_global_expressions[size_expr];
+            let expr = match size {
+                crate::PendingArraySize::Expression(size_expr) => {
+                    adjusted_global_expressions[size_expr]
+                }
+                crate::PendingArraySize::Override(size_override) => {
+                    module.constants[override_map[size_override]].init
+                }
+            };
             let value = module
                 .to_ctx()
                 .eval_expr_to_u32(expr)
