@@ -54,8 +54,8 @@ bitflags::bitflags! {
         /// Can be used for host-shareable structures.
         const HOST_SHAREABLE = 0x10;
 
-        /// The set of types with a fixed size at shader-creation time or a not-fixed size at
-        /// pipeline creation time (ie. everything except arrays sized by an override-expression)
+        /// The set of types with a fixed size at shader-creation time (ie. everything
+        /// except arrays sized by an override-expression)
         const CREATION_RESOLVED = 0x20;
 
         /// This type can be passed as a function argument.
@@ -527,7 +527,6 @@ impl super::Validator {
                             | TypeFlags::COPY
                             | TypeFlags::HOST_SHAREABLE
                             | TypeFlags::ARGUMENT
-                            | TypeFlags::CONSTRUCTIBLE
                     }
                     crate::ArraySize::Dynamic => {
                         // Non-SIZED types may only appear as the last element of a structure.
