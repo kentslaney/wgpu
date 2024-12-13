@@ -212,6 +212,7 @@ fn process_pending(
     override_map: &HandleVec<Override, Handle<Constant>>,
     adjusted_global_expressions: &HandleVec<Expression, Handle<Expression>>,
 ) -> Result<(), PipelineConstantError> {
+    let mut rebuild = false;
     for (handle, ty) in module.types.clone().iter() {
         if let TypeInner::Array {
             base,
@@ -226,6 +227,7 @@ fn process_pending(
                 crate::PendingArraySize::Override(size_override) => {
                     module.constants[override_map[size_override]].init
                 }
+                crate::PendingArraySize::Resolved(_) => unreachable!(),
             };
             let value = module
                 .to_ctx()
@@ -249,18 +251,33 @@ fn process_pending(
                             .with_span(module.global_expressions.get_span(expr), "negative"),
                     )
                 })??;
-            module.types.replace(
-                handle,
-                crate::Type {
-                    name: None,
-                    inner: TypeInner::Array {
-                        base,
-                        size: crate::ArraySize::Constant(value),
-                        stride,
-                    },
+            let mut out = crate::Type {
+                name: None,
+                inner: TypeInner::Array {
+                    base,
+                    size: crate::ArraySize::Constant(value),
+                    stride,
                 },
-            );
+            };
+            if let Some(handle) = module.types.get(&out) {
+                out.inner = TypeInner::Array {
+                    base,
+                    size: crate::ArraySize::Pending(crate::PendingArraySize::Resolved(
+                        crate::ResolvedArraySize {
+                            handle: handle,
+                            init: expr,
+                        },
+                    )),
+                    stride,
+                };
+                rebuild = true;
+            }
+            module.types.replace(handle, out);
         }
+    }
+    if rebuild {
+        crate::compact::compact(module);
+        todo!();
     }
     Ok(())
 }

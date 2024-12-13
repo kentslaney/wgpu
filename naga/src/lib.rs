@@ -491,9 +491,19 @@ pub struct Scalar {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+pub struct ResolvedArraySize {
+    pub handle: Handle<Type>,
+    pub init: Handle<Expression>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub enum PendingArraySize {
     Expression(Handle<Expression>),
     Override(Handle<Override>),
+    Resolved(ResolvedArraySize),
 }
 
 /// Size of an array.

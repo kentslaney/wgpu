@@ -31,13 +31,17 @@ use handle_set_map::HandleMap;
 /// If `module` has not passed validation, this may panic.
 pub fn compact(module: &mut crate::Module) {
     let mut module_tracer = ModuleTracer::new(module);
+    let type_insert = |module_tracer: &mut ModuleTracer, ty| {
+        // TODO: if type is ResolvedArraySize, update adjustments to merge instead of inserting
+        module_tracer.types_used.insert(ty)
+    };
 
     // We treat all globals as used by definition.
     log::trace!("tracing global variables");
     {
         for (_, global) in module.global_variables.iter() {
             log::trace!("tracing global {:?}", global.name);
-            module_tracer.types_used.insert(global.ty);
+            type_insert(&mut module_tracer, global.ty);
             if let Some(init) = global.init {
                 module_tracer.global_expressions_used.insert(init);
             }
@@ -57,7 +61,7 @@ pub fn compact(module: &mut crate::Module) {
 
     // We treat all overrides as used by definition.
     for (_, override_) in module.overrides.iter() {
-        module_tracer.types_used.insert(override_.ty);
+        type_insert(&mut module_tracer, override_.ty);
         if let Some(init) = override_.init {
             module_tracer.global_expressions_used.insert(init);
         }
@@ -123,7 +127,7 @@ pub fn compact(module: &mut crate::Module) {
     // note type usage.
     for (handle, constant) in module.constants.iter() {
         if module_tracer.constants_used.contains(handle) {
-            module_tracer.types_used.insert(constant.ty);
+            type_insert(&mut module_tracer, constant.ty);
         }
     }
 
@@ -131,7 +135,7 @@ pub fn compact(module: &mut crate::Module) {
     for (handle, ty) in module.types.iter() {
         log::trace!("tracing type {:?}, name {:?}", handle, ty.name);
         if ty.name.is_some() {
-            module_tracer.types_used.insert(handle);
+            type_insert(&mut module_tracer, handle);
         }
     }
 
