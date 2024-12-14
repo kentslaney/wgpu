@@ -263,10 +263,7 @@ fn process_pending(
                 out.inner = TypeInner::Array {
                     base,
                     size: crate::ArraySize::Pending(crate::PendingArraySize::Resolved(
-                        crate::ResolvedArraySize {
-                            handle,
-                            init: expr,
-                        },
+                        crate::ResolvedArraySize { handle, init: expr },
                     )),
                     stride,
                 };
