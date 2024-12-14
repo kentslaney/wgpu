@@ -277,7 +277,6 @@ fn process_pending(
     }
     if rebuild {
         crate::compact::compact(module);
-        todo!();
     }
     Ok(())
 }

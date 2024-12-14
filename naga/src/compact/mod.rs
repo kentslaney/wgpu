@@ -55,7 +55,7 @@ pub fn compact(module: &mut crate::Module) {
             }
         }
     }
-)
+
     // We treat all special types as used by definition.
     module_tracer.trace_special_types(&module.special_types);
 
@@ -164,7 +164,11 @@ pub fn compact(module: &mut crate::Module) {
     log::trace!("compacting types");
     let mut new_types = arena::UniqueArena::new();
     for (old_handle, mut ty, span) in module.types.drain_all() {
-        if let Some(expected_new_handle) = module_map.types.try_adjust(old_handle) {
+        if let crate::TypeInner::Array {
+            size: crate::ArraySize::Pending(crate::PendingArraySize::Resolved(_)),
+            ..
+        } = ty.inner
+        {} else if let Some(expected_new_handle) = module_map.types.try_adjust(old_handle) {
             module_map.adjust_type(&mut ty);
             // TODO: don't insert ResolvedArraySize
             let actual_new_handle = new_types.insert(ty, span);
