@@ -16,6 +16,23 @@ pub struct HandleMap<T> {
 }
 
 impl<T: 'static> HandleMap<T> {
+    pub fn merge(&mut self, old: Handle<T>, new: Handle<T>) {
+        self.new_index[old.index()] = Index::new(new.index() as u32);
+    }
+
+    pub fn overlay(&self, other: HandleMap<T>) -> Self {
+        Self {
+            new_index: self.new_index.iter().zip(other.new_index).map(|(this, that)| {
+                if let Some(remapping) = that {
+                    self.new_index[remapping.get() as usize].map_or(that, |x| Some(x))
+                } else {
+                    *this
+                }
+            }).collect(),
+            as_keys: std::marker::PhantomData,
+        }
+    }
+
     pub fn from_set(set: HandleSet<T>) -> Self {
         let mut next_index = Index::new(0).unwrap();
         Self {

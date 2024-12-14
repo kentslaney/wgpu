@@ -31,9 +31,17 @@ use handle_set_map::HandleMap;
 /// If `module` has not passed validation, this may panic.
 pub fn compact(module: &mut crate::Module) {
     let mut module_tracer = ModuleTracer::new(module);
-    let type_insert = |module_tracer: &mut ModuleTracer, ty| {
-        // TODO: if type is ResolvedArraySize, update adjustments to merge instead of inserting
-        module_tracer.types_used.insert(ty)
+    let type_insert = |module: &crate::Module, module_tracer: &mut ModuleTracer, ty: crate::Handle<crate::Type>| {
+        if let crate::TypeInner::Array {
+            size: crate::ArraySize::Pending(
+                crate::PendingArraySize::Resolved(crate::ResolvedArraySize { handle, .. })),
+            ..
+        } = module.types[ty].inner
+        {
+            module_tracer.types_merged.merge(ty, handle);
+        } else {
+            module_tracer.types_used.insert(ty);
+        }
     };
 
     // We treat all globals as used by definition.
@@ -41,13 +49,13 @@ pub fn compact(module: &mut crate::Module) {
     {
         for (_, global) in module.global_variables.iter() {
             log::trace!("tracing global {:?}", global.name);
-            type_insert(&mut module_tracer, global.ty);
+            type_insert(&module, &mut module_tracer, global.ty);
             if let Some(init) = global.init {
                 module_tracer.global_expressions_used.insert(init);
             }
         }
     }
-
+)
     // We treat all special types as used by definition.
     module_tracer.trace_special_types(&module.special_types);
 
@@ -61,7 +69,7 @@ pub fn compact(module: &mut crate::Module) {
 
     // We treat all overrides as used by definition.
     for (_, override_) in module.overrides.iter() {
-        type_insert(&mut module_tracer, override_.ty);
+        type_insert(&module, &mut module_tracer, override_.ty);
         if let Some(init) = override_.init {
             module_tracer.global_expressions_used.insert(init);
         }
@@ -127,7 +135,7 @@ pub fn compact(module: &mut crate::Module) {
     // note type usage.
     for (handle, constant) in module.constants.iter() {
         if module_tracer.constants_used.contains(handle) {
-            type_insert(&mut module_tracer, constant.ty);
+            type_insert(&module, &mut module_tracer, constant.ty);
         }
     }
 
@@ -135,7 +143,7 @@ pub fn compact(module: &mut crate::Module) {
     for (handle, ty) in module.types.iter() {
         log::trace!("tracing type {:?}, name {:?}", handle, ty.name);
         if ty.name.is_some() {
-            type_insert(&mut module_tracer, handle);
+            type_insert(&module, &mut module_tracer, handle);
         }
     }
 
@@ -158,6 +166,7 @@ pub fn compact(module: &mut crate::Module) {
     for (old_handle, mut ty, span) in module.types.drain_all() {
         if let Some(expected_new_handle) = module_map.types.try_adjust(old_handle) {
             module_map.adjust_type(&mut ty);
+            // TODO: don't insert ResolvedArraySize
             let actual_new_handle = new_types.insert(ty, span);
             assert_eq!(actual_new_handle, expected_new_handle);
         }
@@ -268,6 +277,7 @@ pub fn compact(module: &mut crate::Module) {
 struct ModuleTracer<'module> {
     module: &'module crate::Module,
     types_used: HandleSet<crate::Type>,
+    types_merged: HandleMap<crate::Type>,
     constants_used: HandleSet<crate::Constant>,
     global_expressions_used: HandleSet<crate::Expression>,
 }
@@ -277,6 +287,7 @@ impl<'module> ModuleTracer<'module> {
         Self {
             module,
             types_used: HandleSet::for_arena(&module.types),
+            types_merged: HandleMap::from_set(HandleSet::for_arena(&module.types)),
             constants_used: HandleSet::for_arena(&module.constants),
             global_expressions_used: HandleSet::for_arena(&module.global_expressions),
         }
@@ -342,7 +353,7 @@ struct ModuleMap {
 impl From<ModuleTracer<'_>> for ModuleMap {
     fn from(used: ModuleTracer) -> Self {
         ModuleMap {
-            types: HandleMap::from_set(used.types_used),
+            types: HandleMap::from_set(used.types_used).overlay(used.types_merged),
             constants: HandleMap::from_set(used.constants_used),
             global_expressions: HandleMap::from_set(used.global_expressions_used),
         }
