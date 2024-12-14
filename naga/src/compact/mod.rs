@@ -176,7 +176,6 @@ pub fn compact(module: &mut crate::Module) {
         {
         } else if let Some(expected_new_handle) = module_map.types.try_adjust(old_handle) {
             module_map.adjust_type(&mut ty);
-            // TODO: don't insert ResolvedArraySize
             let actual_new_handle = new_types.insert(ty, span);
             assert_eq!(actual_new_handle, expected_new_handle);
         }
