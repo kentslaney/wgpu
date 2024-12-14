@@ -9,7 +9,9 @@ const SHADER: &str = r#"
     var<workgroup> arr: array<u32, n - 2>;
 
     @group(0) @binding(0)
-    var<storage, read_write> output: array<u32, 14 - 2>;
+    var<storage, read_write> output: array<u32>;
+
+    var<workgroup> testing: array<u32, 14 - 2>;
 
     @compute @workgroup_size(1) fn main() {
         // 1d spiral
@@ -34,9 +36,9 @@ const SHADER: &str = r#"
 static ARRAY_SIZE_OVERRIDES: GpuTestConfiguration = GpuTestConfiguration::new()
     .parameters(TestParameters::default().limits(wgpu::Limits::default()))
     .run_async(move |ctx| async move {
-        //array_size_overrides(&ctx, None, &[534], false).await;
+        array_size_overrides(&ctx, None, &[534], false).await;
         array_size_overrides(&ctx, Some(14), &[286480122], false).await;
-        //array_size_overrides(&ctx, Some(1), &[0], true).await;
+        array_size_overrides(&ctx, Some(1), &[0], true).await;
     });
 
 async fn array_size_overrides(
