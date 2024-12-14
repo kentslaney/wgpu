@@ -22,13 +22,18 @@ impl<T: 'static> HandleMap<T> {
 
     pub fn overlay(&self, other: HandleMap<T>) -> Self {
         Self {
-            new_index: self.new_index.iter().zip(other.new_index).map(|(this, that)| {
-                if let Some(remapping) = that {
-                    self.new_index[remapping.get() as usize].map_or(that, |x| Some(x))
-                } else {
-                    *this
-                }
-            }).collect(),
+            new_index: self
+                .new_index
+                .iter()
+                .zip(other.new_index)
+                .map(|(this, that)| {
+                    if let Some(remapping) = that {
+                        self.new_index[remapping.get() as usize].map_or(that, Some)
+                    } else {
+                        *this
+                    }
+                })
+                .collect(),
             as_keys: std::marker::PhantomData,
         }
     }

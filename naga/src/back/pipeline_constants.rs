@@ -264,7 +264,7 @@ fn process_pending(
                     base,
                     size: crate::ArraySize::Pending(crate::PendingArraySize::Resolved(
                         crate::ResolvedArraySize {
-                            handle: handle,
+                            handle,
                             init: expr,
                         },
                     )),

@@ -31,10 +31,15 @@ use handle_set_map::HandleMap;
 /// If `module` has not passed validation, this may panic.
 pub fn compact(module: &mut crate::Module) {
     let mut module_tracer = ModuleTracer::new(module);
-    let type_insert = |module: &crate::Module, module_tracer: &mut ModuleTracer, ty: crate::Handle<crate::Type>| {
+    let type_insert = |module: &crate::Module,
+                       module_tracer: &mut ModuleTracer,
+                       ty: crate::Handle<crate::Type>| {
         if let crate::TypeInner::Array {
-            size: crate::ArraySize::Pending(
-                crate::PendingArraySize::Resolved(crate::ResolvedArraySize { handle, .. })),
+            size:
+                crate::ArraySize::Pending(crate::PendingArraySize::Resolved(crate::ResolvedArraySize {
+                    handle,
+                    ..
+                })),
             ..
         } = module.types[ty].inner
         {
@@ -49,7 +54,7 @@ pub fn compact(module: &mut crate::Module) {
     {
         for (_, global) in module.global_variables.iter() {
             log::trace!("tracing global {:?}", global.name);
-            type_insert(&module, &mut module_tracer, global.ty);
+            type_insert(module, &mut module_tracer, global.ty);
             if let Some(init) = global.init {
                 module_tracer.global_expressions_used.insert(init);
             }
@@ -69,7 +74,7 @@ pub fn compact(module: &mut crate::Module) {
 
     // We treat all overrides as used by definition.
     for (_, override_) in module.overrides.iter() {
-        type_insert(&module, &mut module_tracer, override_.ty);
+        type_insert(module, &mut module_tracer, override_.ty);
         if let Some(init) = override_.init {
             module_tracer.global_expressions_used.insert(init);
         }
@@ -135,7 +140,7 @@ pub fn compact(module: &mut crate::Module) {
     // note type usage.
     for (handle, constant) in module.constants.iter() {
         if module_tracer.constants_used.contains(handle) {
-            type_insert(&module, &mut module_tracer, constant.ty);
+            type_insert(module, &mut module_tracer, constant.ty);
         }
     }
 
@@ -143,7 +148,7 @@ pub fn compact(module: &mut crate::Module) {
     for (handle, ty) in module.types.iter() {
         log::trace!("tracing type {:?}, name {:?}", handle, ty.name);
         if ty.name.is_some() {
-            type_insert(&module, &mut module_tracer, handle);
+            type_insert(module, &mut module_tracer, handle);
         }
     }
 
@@ -168,7 +173,8 @@ pub fn compact(module: &mut crate::Module) {
             size: crate::ArraySize::Pending(crate::PendingArraySize::Resolved(_)),
             ..
         } = ty.inner
-        {} else if let Some(expected_new_handle) = module_map.types.try_adjust(old_handle) {
+        {
+        } else if let Some(expected_new_handle) = module_map.types.try_adjust(old_handle) {
             module_map.adjust_type(&mut ty);
             // TODO: don't insert ResolvedArraySize
             let actual_new_handle = new_types.insert(ty, span);
