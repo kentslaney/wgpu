@@ -11,7 +11,7 @@ const SHADER: &str = r#"
     @group(0) @binding(0)
     var<storage, read_write> output: array<u32>;
 
-    var<workgroup> testing: array<u32, 14 - 2>;
+    var<workgroup> testing: array<u32, 12>;
 
     @compute @workgroup_size(1) fn main() {
         // 1d spiral
