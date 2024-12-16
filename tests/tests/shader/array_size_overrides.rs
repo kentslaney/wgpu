@@ -11,6 +11,7 @@ const SHADER: &str = r#"
     @group(0) @binding(0)
     var<storage, read_write> output: array<u32>;
 
+    // overlaps arr's type when n is overriden to 14 and the type array<u32, 14 - 2> already exists
     var<workgroup> testing: array<u32, 12>;
 
     @compute @workgroup_size(1) fn main() {
