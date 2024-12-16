@@ -11,7 +11,11 @@ const SHADER: &str = r#"
     @group(0) @binding(0)
     var<storage, read_write> output: array<u32>;
 
-    // overlaps arr's type when n is overridden to 14 and the type array<u32, 14 - 2> already exists
+    // When `n` is overridden to 14 above, it will generate the type `array<u32, 14 - 2>` which
+    // already exists in the program because of variable declaration. Ensures naga does not panic
+    // when this happens.
+    //
+    // See https://github.com/gfx-rs/wgpu/issues/6722 for more info.
     var<workgroup> testing: array<u32, 12>;
 
     @compute @workgroup_size(1) fn main() {
