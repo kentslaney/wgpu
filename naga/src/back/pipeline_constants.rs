@@ -273,7 +273,10 @@ fn process_pending(
         }
     }
     if rebuild {
+        #[cfg(feature = "compact")]
         crate::compact::compact(module);
+        #[cfg(not(feature = "compact"))]
+        panic!();
     }
     Ok(())
 }
