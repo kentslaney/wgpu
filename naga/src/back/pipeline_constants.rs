@@ -275,8 +275,9 @@ fn process_pending(
     if rebuild {
         #[cfg(feature = "compact")]
         crate::compact::compact(module);
+        // wgsl-in requires compact and pipeline overrides require WGSL
         #[cfg(not(feature = "compact"))]
-        panic!();
+        unreachable!();
     }
     Ok(())
 }
