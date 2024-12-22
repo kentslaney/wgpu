@@ -63,16 +63,6 @@ pub fn compact(module: &mut crate::Module) {
         }
     }
 
-    for (_, ty) in module.types.iter() {
-        if let crate::TypeInner::Array {
-            size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(size_expr)),
-            ..
-        } = ty.inner
-        {
-            module_tracer.global_expressions_used.insert(size_expr);
-        }
-    }
-
     for e in module.entry_points.iter() {
         if let Some(sizes) = e.workgroup_size_overrides {
             for size in sizes.iter().filter_map(|x| *x) {
@@ -112,31 +102,41 @@ pub fn compact(module: &mut crate::Module) {
         })
         .collect();
 
-    // Given that the above steps have marked all the constant
-    // expressions used directly by globals, constants, functions, and
-    // entry points, walk the constant expression arena to find all
-    // constant expressions used, directly or indirectly.
-    module_tracer.as_const_expression().trace_expressions();
+    module_tracer.type_expression_tandem(|module_tracer| {
+        // Given that the above steps have marked all the constant
+        // expressions used directly by globals, constants, functions, and
+        // entry points, walk the constant expression arena to find all
+        // constant expressions used, directly or indirectly.
 
-    // Constants' initializers are taken care of already, because
-    // expression tracing sees through constants. But we still need to
-    // note type usage.
-    for (handle, constant) in module.constants.iter() {
-        if module_tracer.constants_used.contains(handle) {
-            module_tracer.types_used.insert(constant.ty);
+        // Constants' initializers are taken care of already, because
+        // expression tracing sees through constants. But we still need to
+        // note type usage.
+        for (handle, constant) in module.constants.iter() {
+            if module_tracer.constants_used.contains(handle) {
+                module_tracer.types_used_insert(constant.ty);
+            }
         }
-    }
 
-    // Treat all named types as used.
-    for (handle, ty) in module.types.iter() {
-        log::trace!("tracing type {:?}, name {:?}", handle, ty.name);
-        if ty.name.is_some() {
-            module_tracer.types_used.insert(handle);
+        // Treat all named types as used.
+        for (handle, ty) in module.types.iter().rev() {
+            log::trace!("tracing type {:?}, name {:?}", handle, ty.name);
+            if ty.name.is_some() {
+                module_tracer.types_used_insert(handle);
+            }
         }
-    }
-
-    // Propagate usage through types.
-    module_tracer.as_type().trace_types();
+    }, |module_tracer| {
+        for (handle, ty) in module.types.iter() {
+            if module_tracer.types_used.contains(handle) {
+                if let crate::TypeInner::Array {
+                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(size_expr)),
+                    ..
+                } = ty.inner
+                {
+                    module_tracer.global_expressions_used.insert(size_expr);
+                }
+            }
+        }
+    });
 
     // Now that we know what is used and what is never touched,
     // produce maps from the `Handle`s that appear in `module` now to
@@ -268,6 +268,10 @@ struct ModuleTracer<'module> {
     global_expressions_used: HandleSet<crate::Expression>,
 }
 
+fn handle2type(x: &mut types::TypeTracer, y: crate::Handle<crate::Type>) {
+    x.trace_type(&x.types[y], handle2type);
+}
+
 impl<'module> ModuleTracer<'module> {
     fn new(module: &'module crate::Module) -> Self {
         Self {
@@ -296,11 +300,34 @@ impl<'module> ModuleTracer<'module> {
         }
     }
 
+    fn type_expression_tandem(&mut self, e2t: impl FnOnce(&mut Self), t2e: impl FnOnce(&mut Self)) {
+        t2e(self);
+        self.as_const_expression().trace_expressions();
+        e2t(self);
+
+        // Propagate usage through types.
+        self.as_type().trace_types();
+    }
+
+    fn types_used_insert(&mut self, x: crate::Handle<crate::Type>) -> bool {
+        self.trace_type(x);
+        self.types_used.insert(x)
+    }
+
     fn as_type(&mut self) -> types::TypeTracer {
         types::TypeTracer {
             types: &self.module.types,
             types_used: &mut self.types_used,
+            expressions_used: &mut self.global_expressions_used,
         }
+    }
+
+    fn trace_type(&mut self, x: crate::Handle<crate::Type>) {
+        types::TypeTracer {
+            types: &self.module.types,
+            types_used: &mut self.types_used,
+            expressions_used: &mut self.global_expressions_used,
+        }.trace_type(&self.module.types[x], handle2type)
     }
 
     fn as_const_expression(&mut self) -> expressions::ExpressionTracer {
