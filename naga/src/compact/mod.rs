@@ -327,7 +327,8 @@ impl<'module> ModuleTracer<'module> {
             types: &self.module.types,
             types_used: &mut self.types_used,
             expressions_used: &mut self.global_expressions_used,
-        }.trace_type(&self.module.types[x], handle2type)
+        }
+        .trace_type(&self.module.types[x], handle2type)
     }
 
     fn as_const_expression(&mut self) -> expressions::ExpressionTracer {
@@ -408,48 +409,87 @@ impl From<FunctionTracer<'_>> for FunctionMap {
 #[test]
 fn type_expression_interdependence() {
     let mut module: crate::Module = Default::default();
-    let u32 = module.types.insert(crate::Type {
-        name: None,
-        inner: crate::TypeInner::Scalar(crate::Scalar {
-            kind: crate::ScalarKind::Uint,
-            width: 4,
-        })}, crate::Span::default());
+    let u32 = module.types.insert(
+        crate::Type {
+            name: None,
+            inner: crate::TypeInner::Scalar(crate::Scalar {
+                kind: crate::ScalarKind::Uint,
+                width: 4,
+            }),
+        },
+        crate::Span::default(),
+    );
     let expr = module.global_expressions.append(
         crate::Expression::Literal(crate::Literal::U32(0)),
-        crate::Span::default());
-    let type_needs_expression = |module: &mut crate::Module, handle| module.types.insert(
-        crate::Type { name: None, inner: crate::TypeInner::Array {
-            base: u32,
-            size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(handle)),
-            stride: 4,
-        }}, crate::Span::default());
-    let expression_needs_type = |module: &mut crate::Module, handle|
+        crate::Span::default(),
+    );
+    let type_needs_expression = |module: &mut crate::Module, handle| {
+        module.types.insert(
+            crate::Type {
+                name: None,
+                inner: crate::TypeInner::Array {
+                    base: u32,
+                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(handle)),
+                    stride: 4,
+                },
+            },
+            crate::Span::default(),
+        )
+    };
+    let expression_needs_type = |module: &mut crate::Module, handle| {
+        module
+            .global_expressions
+            .append(crate::Expression::ZeroValue(handle), crate::Span::default())
+    };
+    let expression_needs_expression = |module: &mut crate::Module, handle| {
         module.global_expressions.append(
-            crate::Expression::ZeroValue(handle), crate::Span::default());
-    let expression_needs_expression = |module: &mut crate::Module, handle|
-        module.global_expressions.append(
-            crate::Expression::Load { pointer: handle }, crate::Span::default());
-    let type_needs_type = |module: &mut crate::Module, handle| module.types.insert(
-        crate::Type { name: None, inner: crate::TypeInner::Array {
-            base: handle, size: crate::ArraySize::Dynamic, stride: 0,
-        }}, crate::Span::default());
+            crate::Expression::Load { pointer: handle },
+            crate::Span::default(),
+        )
+    };
+    let type_needs_type = |module: &mut crate::Module, handle| {
+        module.types.insert(
+            crate::Type {
+                name: None,
+                inner: crate::TypeInner::Array {
+                    base: handle,
+                    size: crate::ArraySize::Dynamic,
+                    stride: 0,
+                },
+            },
+            crate::Span::default(),
+        )
+    };
     let mut type_name_counter = 0;
     let mut type_needed = |module: &mut crate::Module, handle| {
         let name = Some(format!("type{}", type_name_counter));
         type_name_counter += 1;
-        module.types.insert(crate::Type { name, inner: crate::TypeInner::Array {
-            base: handle, size: crate::ArraySize::Dynamic, stride: 0,
-        }}, crate::Span::default())};
+        module.types.insert(
+            crate::Type {
+                name,
+                inner: crate::TypeInner::Array {
+                    base: handle,
+                    size: crate::ArraySize::Dynamic,
+                    stride: 0,
+                },
+            },
+            crate::Span::default(),
+        )
+    };
     let mut override_name_counter = 0;
     let mut expression_needed = |module: &mut crate::Module, handle| {
         let name = Some(format!("override{}", override_name_counter));
         override_name_counter += 1;
-        module.overrides.append(crate::Override {
-            name,
-            id: None,
-            ty: u32,
-            init: Some(handle),
-        }, crate::Span::default())};
+        module.overrides.append(
+            crate::Override {
+                name,
+                id: None,
+                ty: u32,
+                init: Some(handle),
+            },
+            crate::Span::default(),
+        )
+    };
     let tmp0 = type_needs_expression(&mut module, expr);
     let tmp1 = type_needs_type(&mut module, tmp0);
     let tmp2 = expression_needs_type(&mut module, tmp1);

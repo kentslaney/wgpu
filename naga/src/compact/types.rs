@@ -25,14 +25,16 @@ impl TypeTracer<'_> {
                 continue;
             }
 
-            self.trace_type(ty, |x, y| { x.types_used.insert(y); });
+            self.trace_type(ty, |x, y| {
+                x.types_used.insert(y);
+            });
         }
     }
 
     pub fn trace_type(
         &mut self,
         ty: &crate::Type,
-        callback: impl Fn(&mut Self, Handle<crate::Type>)
+        callback: impl Fn(&mut Self, Handle<crate::Type>),
     ) {
         use crate::TypeInner as Ti;
         match ty.inner {
@@ -55,7 +57,7 @@ impl TypeTracer<'_> {
             }
             | Ti::BindingArray {
                 base,
-                size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr))
+                size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
             } => {
                 self.expressions_used.insert(expr);
                 callback(self, base);
