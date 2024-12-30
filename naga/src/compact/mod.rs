@@ -507,6 +507,7 @@ fn type_expression_interdependence() {
             crate::Span::default(),
         )
     };
+    // borrow checker breaks without the tmp variables as of Rust 1.83.0
     let tmp0 = type_needs_expression(&mut module, expr);
     let tmp1 = type_needs_type(&mut module, tmp0);
     let tmp2 = expression_needs_type(&mut module, tmp1);
