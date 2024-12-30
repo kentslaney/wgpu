@@ -102,41 +102,39 @@ pub fn compact(module: &mut crate::Module) {
         })
         .collect();
 
-    module_tracer.type_expression_tandem(|module_tracer| {
-        // Given that the above steps have marked all the constant
-        // expressions used directly by globals, constants, functions, and
-        // entry points, walk the constant expression arena to find all
-        // constant expressions used, directly or indirectly.
+    // Given that the above steps have marked all the constant
+    // expressions used directly by globals, constants, functions, and
+    // entry points, walk the constant expression arena to find all
+    // constant expressions used, directly or indirectly.
+    module_tracer.as_const_expression().trace_expressions();
 
-        // Constants' initializers are taken care of already, because
-        // expression tracing sees through constants. But we still need to
-        // note type usage.
-        for (handle, constant) in module.constants.iter() {
-            if module_tracer.constants_used.contains(handle) {
-                module_tracer.types_used_insert(constant.ty);
-            }
+    // Constants' initializers are taken care of already, because
+    // expression tracing sees through constants. But we still need to
+    // note type usage.
+    for (handle, constant) in module.constants.iter() {
+        if module_tracer.constants_used.contains(handle) {
+            module_tracer.types_used.insert(constant.ty);
         }
+    }
 
-        // Treat all named types as used.
-        for (handle, ty) in module.types.iter().rev() {
-            log::trace!("tracing type {:?}, name {:?}", handle, ty.name);
-            if ty.name.is_some() {
-                module_tracer.types_used_insert(handle);
-            }
+    // Treat all named types as used.
+    for (handle, ty) in module.types.iter() {
+        log::trace!("tracing type {:?}, name {:?}", handle, ty.name);
+        if ty.name.is_some() {
+            module_tracer.types_used.insert(handle);
         }
-    }, |module_tracer| {
-        for (handle, ty) in module.types.iter() {
-            if module_tracer.types_used.contains(handle) {
-                if let crate::TypeInner::Array {
-                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(size_expr)),
-                    ..
-                } = ty.inner
-                {
-                    module_tracer.global_expressions_used.insert(size_expr);
-                }
-            }
-        }
-    });
+    }
+
+    // Propagate usage through types.
+    module_tracer.as_type().trace_types();
+
+    module_tracer.type_expression_tandem();
+
+    eprintln!(
+        "expr\n{:#?}\n\nty\n{:#?}",
+        module_tracer.global_expressions_used,
+        module_tracer.types_used
+    );
 
     // Now that we know what is used and what is never touched,
     // produce maps from the `Handle`s that appear in `module` now to
@@ -300,16 +298,35 @@ impl<'module> ModuleTracer<'module> {
         }
     }
 
-    fn type_expression_tandem(&mut self, e2t: impl FnOnce(&mut Self), t2e: impl FnOnce(&mut Self)) {
-        t2e(self);
-        self.as_const_expression().trace_expressions();
-        e2t(self);
+    fn type_expression_tandem(&mut self) {
+        // assume that the expressions are well ordered since they're not merged like types are
+        //     ie. expression A referring to a type referring to expression B has A > B.
+        //     this needs to be checked in the validator (TODO)
 
-        // Propagate usage through types.
-        self.as_type().trace_types();
+        // 1. for any type marked as used, mark its expressions as used
+        // 2. for any expression marked as used and referencing a type (while iterating backwards)
+        //     a. walk the type's dependency tree
+        //         i. mark the types and their referenced expressions as used
+
+        // ┌───────────┐ ┌───────────┐
+        // │Expressions│ │   Types   │
+        // │           │ │           │
+        // │        covered by │     │
+        // │          step 1   │     │
+        // │      ◄────┬─┬─────┘     │
+        // │           │ │           │
+        // │           │ │           │
+        // │     │  covered by       │
+        // │     │    step 2         │
+        // │     └─────┬─┬────►│     │
+        // │           │ │     │     │
+        // │      ◄────┼─┼─────┘     │
+        // │           │ │           │
+        // └───────────┘ └───────────┘
     }
 
     fn types_used_insert(&mut self, x: crate::Handle<crate::Type>) -> bool {
+        eprintln!("tracing ty {:#?}", x);
         self.trace_type(x);
         self.types_used.insert(x)
     }
