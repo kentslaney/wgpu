@@ -212,20 +212,23 @@ pub fn compact(module: &mut crate::Module) {
             stride,
         } = ty.inner
         {
-            module_map.global_expressions.adjust(&mut size_expr);
-            module.types.replace(
-                handle,
-                crate::Type {
-                    name: None,
-                    inner: crate::TypeInner::Array {
-                        base,
-                        size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(
-                            size_expr,
-                        )),
-                        stride,
+            let adjusted = module_map.global_expressions.try_adjust(size_expr);
+            if adjusted.is_some() && adjusted != Some(size_expr) {
+                size_expr = adjusted.unwrap();
+                module.types.replace(
+                    handle,
+                    crate::Type {
+                        name: None,
+                        inner: crate::TypeInner::Array {
+                            base,
+                            size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(
+                                size_expr,
+                            )),
+                            stride,
+                        },
                     },
-                },
-            );
+                );
+            }
         }
     }
 
