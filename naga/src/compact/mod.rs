@@ -102,12 +102,6 @@ pub fn compact(module: &mut crate::Module) {
         })
         .collect();
 
-    // Given that the above steps have marked all the constant
-    // expressions used directly by globals, constants, functions, and
-    // entry points, walk the constant expression arena to find all
-    // constant expressions used, directly or indirectly.
-    module_tracer.as_const_expression().trace_expressions();
-
     // Constants' initializers are taken care of already, because
     // expression tracing sees through constants. But we still need to
     // note type usage.
@@ -124,9 +118,6 @@ pub fn compact(module: &mut crate::Module) {
             module_tracer.types_used.insert(handle);
         }
     }
-
-    // Propagate usage through types.
-    module_tracer.as_type().trace_types();
 
     module_tracer.type_expression_tandem();
 
@@ -299,30 +290,41 @@ impl<'module> ModuleTracer<'module> {
     }
 
     fn type_expression_tandem(&mut self) {
+        // assume there are no cycles in the type/expression graph (guaranteed by validator)
         // assume that the expressions are well ordered since they're not merged like types are
         //     ie. expression A referring to a type referring to expression B has A > B.
-        //     this needs to be checked in the validator (TODO)
 
-        // 1. for any type marked as used, mark its expressions as used
-        // 2. for any expression marked as used and referencing a type (while iterating backwards)
-        //     a. walk the type's dependency tree
-        //         i. mark the types and their referenced expressions as used
+        // TODO: check dependency ordering in validator
+
+        //  1.  iterate over types, skipping unused ones
+        //      a.  if the type references an expression, mark it used
+        //      b.  repeat `a` while walking referenced types, marking them as used
+        //  2.  iterate backwards over expressions, skipping unused ones
+        //      a.  if the expression references a type
+        //          i.  walk the type's dependency tree, marking the types and their referenced
+        //              expressions as used
+        //      b. if the expression references another expression, mark the latter as used
 
         // ┌───────────┐ ┌───────────┐
         // │Expressions│ │   Types   │
         // │           │ │           │
-        // │        covered by │     │
-        // │          step 1   │     │
-        // │      ◄────┬─┬─────┘     │
+        // │        covered by │     │  So that back/forths starting with a type now start with an
+        // │          step 1   │     │  expression instead.
+        // │      ◄────┴─┴─────┘     │
         // │           │ │           │
         // │           │ │           │
-        // │     │  covered by       │
-        // │     │    step 2         │
-        // │     └─────┬─┬────►│     │
+        // │      ◄────┼─┼─────┐     │  This arrow is only as needed.
         // │           │ │     │     │
-        // │      ◄────┼─┼─────┘     │
+        // │     ┌─────┴─┴────►│     │
+        // │     │  covered by       │  This covers back/forths starting with an expression.
+        // │     │    step 2         │
         // │           │ │           │
         // └───────────┘ └───────────┘
+
+        // 1
+        module_tracer.as_type().trace_types();
+        // 2b
+        module_tracer.as_const_expression().trace_expressions();
     }
 
     fn types_used_insert(&mut self, x: crate::Handle<crate::Type>) -> bool {
