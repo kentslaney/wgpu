@@ -121,12 +121,6 @@ pub fn compact(module: &mut crate::Module) {
 
     module_tracer.type_expression_tandem();
 
-    eprintln!(
-        "expr\n{:#?}\n\nty\n{:#?}",
-        module_tracer.global_expressions_used,
-        module_tracer.types_used
-    );
-
     // Now that we know what is used and what is never touched,
     // produce maps from the `Handle`s that appear in `module` now to
     // the corresponding `Handle`s that will refer to the same items
