@@ -257,10 +257,6 @@ struct ModuleTracer<'module> {
     global_expressions_used: HandleSet<crate::Expression>,
 }
 
-fn handle2type(x: &mut types::TypeTracer, y: crate::Handle<crate::Type>) {
-    x.trace_type(&x.types[y], handle2type);
-}
-
 impl<'module> ModuleTracer<'module> {
     fn new(module: &'module crate::Module) -> Self {
         Self {
@@ -322,15 +318,9 @@ impl<'module> ModuleTracer<'module> {
         // └───────────┘ └───────────┘
 
         // 1
-        module_tracer.as_type().trace_types();
-        // 2b
-        module_tracer.as_const_expression().trace_expressions();
-    }
-
-    fn types_used_insert(&mut self, x: crate::Handle<crate::Type>) -> bool {
-        eprintln!("tracing ty {:#?}", x);
-        self.trace_type(x);
-        self.types_used.insert(x)
+        self.as_type().trace_types();
+        // 2
+        self.as_const_expression().trace_expressions();
     }
 
     fn as_type(&mut self) -> types::TypeTracer {
@@ -341,17 +331,9 @@ impl<'module> ModuleTracer<'module> {
         }
     }
 
-    fn trace_type(&mut self, x: crate::Handle<crate::Type>) {
-        types::TypeTracer {
-            types: &self.module.types,
-            types_used: &mut self.types_used,
-            expressions_used: &mut self.global_expressions_used,
-        }
-        .trace_type(&self.module.types[x], handle2type)
-    }
-
     fn as_const_expression(&mut self) -> expressions::ExpressionTracer {
         expressions::ExpressionTracer {
+            types: Some(&self.module.types),
             expressions: &self.module.global_expressions,
             constants: &self.module.constants,
             types_used: &mut self.types_used,

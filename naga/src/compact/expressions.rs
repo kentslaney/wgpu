@@ -1,7 +1,9 @@
 use super::{HandleMap, HandleSet, ModuleMap};
-use crate::arena::{Arena, Handle};
+use crate::arena::{UniqueArena, Arena, Handle};
+use crate::compact::types::{TypeTracer};
 
 pub struct ExpressionTracer<'tracer> {
+    pub types: Option<&'tracer UniqueArena<crate::Type>>,
     pub constants: &'tracer Arena<crate::Constant>,
 
     /// The arena in which we are currently tracing expressions.
@@ -28,6 +30,25 @@ pub struct ExpressionTracer<'tracer> {
 }
 
 impl ExpressionTracer<'_> {
+    fn types_used_insert(&mut self, x: Handle<crate::Type>) -> bool {
+        if self.types.is_some() {
+            self.trace_type(x);
+        }
+        self.types_used.insert(x)
+    }
+
+    fn trace_type(&mut self, x: Handle<crate::Type>) {
+        fn handle2type(x: &mut TypeTracer, y: Handle<crate::Type>) {
+            x.trace_type(&x.types[y], handle2type);
+        }
+        TypeTracer {
+            types: &self.types.unwrap(),
+            types_used: &mut self.types_used,
+            expressions_used: &mut self.expressions_used,
+        }
+        .trace_type(&self.types.unwrap()[x], handle2type)
+    }
+
     /// Propagate usage through `self.expressions`, starting with `self.expressions_used`.
     ///
     /// Treat `self.expressions_used` as the initial set of "known
@@ -95,10 +116,10 @@ impl ExpressionTracer<'_> {
                     // `compact::compact`, so we have no more work to do here.
                 }
                 Ex::ZeroValue(ty) => {
-                    self.types_used.insert(ty);
+                    self.types_used_insert(ty);
                 }
                 Ex::Compose { ty, ref components } => {
-                    self.types_used.insert(ty);
+                    self.types_used_insert(ty);
                     self.expressions_used
                         .insert_iter(components.iter().cloned());
                 }
@@ -215,7 +236,7 @@ impl ExpressionTracer<'_> {
                 Ex::AtomicResult { ty, comparison: _ }
                 | Ex::WorkGroupUniformLoadResult { ty }
                 | Ex::SubgroupOperationResult { ty } => {
-                    self.types_used.insert(ty);
+                    self.types_used_insert(ty);
                 }
                 Ex::RayQueryGetIntersection {
                     query,
