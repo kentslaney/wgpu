@@ -30,15 +30,16 @@ pub struct ExpressionTracer<'tracer> {
 }
 
 impl ExpressionTracer<'_> {
-    fn types_used_insert(&mut self, x: Handle<crate::Type>) -> bool {
+    fn types_used_insert(&mut self, x: Handle<crate::Type>) {
         if self.types.is_some() {
             self.trace_type(x);
         }
-        self.types_used.insert(x)
+        self.types_used.insert(x);
     }
 
     fn trace_type(&mut self, x: Handle<crate::Type>) {
         fn handle2type(x: &mut TypeTracer, y: Handle<crate::Type>) {
+            x.types_used.insert(y);
             x.trace_type(&x.types[y], handle2type);
         }
         TypeTracer {
