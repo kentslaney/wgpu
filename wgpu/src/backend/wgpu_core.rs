@@ -3,7 +3,7 @@ use crate::{
     dispatch::{self, BufferMappedRangeInterface, InterfaceTypes},
     BindingResource, BufferBinding, BufferDescriptor, CompilationInfo, CompilationMessage,
     CompilationMessageType, ErrorSource, Features, Label, LoadOp, MapMode, Operations,
-    ShaderSource, StoreOp, SurfaceTargetUnsafe, TextureDescriptor,
+    ShaderSource, SurfaceTargetUnsafe, TextureDescriptor,
 };
 
 use arrayvec::ArrayVec;
@@ -397,37 +397,23 @@ fn map_texture_tagged_copy_view(
     }
 }
 
-fn map_store_op(op: StoreOp) -> wgc::command::StoreOp {
-    match op {
-        StoreOp::Store => wgc::command::StoreOp::Store,
-        StoreOp::Discard => wgc::command::StoreOp::Discard,
+fn map_load_op<V: Copy>(load: &LoadOp<V>) -> LoadOp<Option<V>> {
+    match load {
+        LoadOp::Clear(clear_value) => LoadOp::Clear(Some(*clear_value)),
+        LoadOp::Load => LoadOp::Load,
     }
 }
 
-fn map_load_op<V: Default>(op: LoadOp<V>) -> (wgc::command::LoadOp, V) {
-    match op {
-        LoadOp::Clear(v) => (wgc::command::LoadOp::Clear, v),
-        LoadOp::Load => (wgc::command::LoadOp::Load, V::default()),
-    }
-}
-
-fn map_pass_channel<V: Copy + Default>(
-    ops: Option<&Operations<V>>,
-) -> wgc::command::PassChannel<V> {
+fn map_pass_channel<V: Copy>(ops: Option<&Operations<V>>) -> wgc::command::PassChannel<Option<V>> {
     match ops {
-        Some(&Operations { load, store }) => {
-            let (load_op, clear_value) = map_load_op(load);
-            wgc::command::PassChannel {
-                load_op,
-                store_op: map_store_op(store),
-                clear_value,
-                read_only: false,
-            }
-        }
+        Some(&Operations { load, store }) => wgc::command::PassChannel {
+            load_op: Some(map_load_op(&load)),
+            store_op: Some(store),
+            read_only: false,
+        },
         None => wgc::command::PassChannel {
-            load_op: wgc::command::LoadOp::Load,
-            store_op: wgc::command::StoreOp::Store,
-            clear_value: V::default(),
+            load_op: None,
+            store_op: None,
             read_only: true,
         },
     }
@@ -969,11 +955,11 @@ impl dispatch::DeviceInterface for CoreDevice {
     fn create_shader_module(
         &self,
         desc: crate::ShaderModuleDescriptor<'_>,
-        shader_bound_checks: wgt::ShaderBoundChecks,
+        shader_bound_checks: wgt::ShaderRuntimeChecks,
     ) -> dispatch::DispatchShaderModule {
         let descriptor = wgc::pipeline::ShaderModuleDescriptor {
             label: desc.label.map(Borrowed),
-            shader_bound_checks,
+            runtime_checks: shader_bound_checks,
         };
         let source = match desc.source {
             #[cfg(feature = "spirv")]
@@ -1034,7 +1020,7 @@ impl dispatch::DeviceInterface for CoreDevice {
             label: desc.label.map(Borrowed),
             // Doesn't matter the value since spirv shaders aren't mutated to include
             // runtime checks
-            shader_bound_checks: unsafe { wgt::ShaderBoundChecks::unchecked() },
+            runtime_checks: wgt::ShaderRuntimeChecks::unchecked(),
         };
         let (id, error) = unsafe {
             self.context.0.device_create_shader_module_spirv(
@@ -1969,6 +1955,7 @@ impl dispatch::TextureInterface for CoreTexture {
             label: desc.label.map(Borrowed),
             format: desc.format,
             dimension: desc.dimension,
+            usage: desc.usage,
             range: wgt::ImageSubresourceRange {
                 aspect: desc.aspect,
                 base_mip_level: desc.base_mip_level,
@@ -2247,16 +2234,13 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
             .color_attachments
             .iter()
             .map(|ca| {
-                ca.as_ref().map(|at| {
-                    let (load_op, clear_value) = map_load_op(at.ops.load);
-                    wgc::command::RenderPassColorAttachment {
+                ca.as_ref()
+                    .map(|at| wgc::command::RenderPassColorAttachment {
                         view: at.view.inner.as_core().id,
                         resolve_target: at.resolve_target.map(|view| view.inner.as_core().id),
-                        load_op,
-                        store_op: map_store_op(at.ops.store),
-                        clear_value,
-                    }
-                })
+                        load_op: at.ops.load,
+                        store_op: at.ops.store,
+                    })
             })
             .collect::<Vec<_>>();
 
