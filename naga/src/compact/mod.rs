@@ -302,23 +302,23 @@ impl<'module> ModuleTracer<'module> {
         //  2.  iterate backwards over expressions, skipping unused ones
         //      a.  if the expression references a type
         //          i.  walk the type's dependency tree, marking the types and their referenced
-        //              expressions as used
+        //              expressions as used (types_used_insert instead of types_used.insert)
         //      b. if the expression references another expression, mark the latter as used
 
         // ┌───────────┐ ┌───────────┐
         // │Expressions│ │   Types   │
-        // │           │ │           │
+        // │           ╵ ╵           │
         // │        covered by │     │  So that back/forths starting with a type now start with an
         // │          step 1   │     │  expression instead.
-        // │      ◄────┴─┴─────┘     │
+        // │      ◄────────────┘     │
         // │           │ │           │
         // │           │ │           │
-        // │      ◄────┼─┼─────┐     │  This arrow is only as needed.
+        // │      ◄────────────┐     │  This arrow is only as needed.
         // │           │ │     │     │
-        // │     ┌─────┴─┴────►│     │
+        // │     ┌────────────►│     │
         // │     │  covered by       │  This covers back/forths starting with an expression.
         // │     │    step 2         │
-        // │           │ │           │
+        // │           ╷ ╷           │
         // └───────────┘ └───────────┘
 
         // 1
