@@ -1,8 +1,9 @@
 //! Implementation of `Validator::validate_module_handles`.
 
 use crate::{
-    arena::{BadHandle, BadRangeError},
+    arena::{HandleSet, BadHandle, BadRangeError},
     diagnostic_filter::DiagnosticFilterNode,
+    compact::expressions::ExpressionTracer,
     Handle,
 };
 
@@ -74,6 +75,7 @@ impl super::Validator {
 
         for handle_and_expr in global_expressions.iter() {
             Self::validate_const_expression_handles(handle_and_expr, constants, overrides, types)?;
+            Self::well_ordered_deps(handle_and_expr, constants, global_expressions, types)?;
         }
 
         let validate_type = |handle| Self::validate_type_handle(handle, types);
@@ -628,6 +630,28 @@ impl super::Validator {
             | crate::Statement::Kill
             | crate::Statement::Barrier(_) => Ok(()),
         })
+    }
+
+    pub fn well_ordered_deps(
+        (handle, expression): (Handle<crate::Expression>, &crate::Expression),
+        constants: &Arena<crate::Constant>,
+        global_expressions: &Arena<crate::Expression>,
+        types: &UniqueArena<crate::Type>,
+    ) -> Result<(), InvalidHandleError> {
+        let mut exprs = HandleSet::for_arena(global_expressions);
+        ExpressionTracer {
+            types: Some(types),
+            expressions: global_expressions,
+            constants: constants,
+            types_used: &mut HandleSet::for_arena(types),
+            constants_used: &mut HandleSet::for_arena(constants),
+            expressions_used: &mut exprs,
+            global_expressions_used: None,
+        }.trace_expression(expression);
+        if let Err(error) = handle.check_dep_iter(exprs.iter()) {
+            return Err(InvalidHandleError::ForwardDependency(error));
+        }
+        Ok(())
     }
 }
 

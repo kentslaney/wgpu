@@ -1,4 +1,4 @@
-mod expressions;
+pub mod expressions;
 mod functions;
 mod handle_set_map;
 mod statements;
@@ -259,8 +259,7 @@ impl<'module> ModuleTracer<'module> {
         // assume there are no cycles in the type/expression graph (guaranteed by validator)
         // assume that the expressions are well ordered since they're not merged like types are
         //     ie. expression A referring to a type referring to expression B has A > B.
-
-        // TODO: check dependency ordering in validator
+        //     (also guaranteed by validator)
 
         //  1.  iterate over types, skipping unused ones
         //      a.  if the type references an expression, mark it used
