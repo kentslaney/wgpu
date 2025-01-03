@@ -788,3 +788,44 @@ fn constant_deps() {
         .is_err());
     }
 }
+
+#[test]
+fn well_ordered_expressions() {
+    use super::Validator;
+    use crate::{ArraySize, Expression, PendingArraySize, Scalar, Span, Type, TypeInner, Literal};
+
+    let nowhere = Span::default();
+
+    let mut m = crate::Module::default();
+
+    let ty_u32 = m.types.insert(
+        Type {
+            name: Some("u32".to_string()),
+            inner: TypeInner::Scalar(Scalar::U32),
+        },
+        nowhere,
+    );
+    let ex_zero = m
+        .global_expressions
+        .append(Expression::ZeroValue(ty_u32), nowhere);
+    let expr = m.global_expressions.append(Expression::Literal(Literal::U32(0)), nowhere);
+    let ty_arr = m.types.insert(
+        Type {
+            name: Some("bad_array".to_string()),
+            inner: TypeInner::Array {
+                base: ty_u32,
+                size: ArraySize::Pending(PendingArraySize::Expression(expr)),
+                stride: 4,
+            },
+        },
+        nowhere,
+    );
+
+    // Everything should be okay now.
+    assert!(Validator::validate_module_handles(&m).is_ok());
+
+    // Mutate `ex_zero`'s type to `ty_arr`, introducing an out of order dependency.
+    // Validation should catch the problem.
+    m.global_expressions[ex_zero] = Expression::ZeroValue(ty_arr);
+    assert!(Validator::validate_module_handles(&m).is_err());
+}
