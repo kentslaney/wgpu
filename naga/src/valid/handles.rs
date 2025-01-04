@@ -2,13 +2,15 @@
 
 use crate::{
     arena::{BadHandle, BadRangeError, HandleSet},
-    compact::expressions::ExpressionTracer,
     diagnostic_filter::DiagnosticFilterNode,
     Handle,
 };
 
 use crate::non_max_u32::NonMaxU32;
 use crate::{Arena, UniqueArena};
+
+#[cfg(feature = "compact")]
+use crate::compact::expressions::ExpressionTracer;
 
 use super::ValidationError;
 
@@ -639,6 +641,7 @@ impl super::Validator {
         types: &UniqueArena<crate::Type>,
     ) -> Result<(), InvalidHandleError> {
         let mut exprs = HandleSet::for_arena(global_expressions);
+        #[cfg(feature = "compact")]
         ExpressionTracer {
             types: Some(types),
             expressions: global_expressions,
