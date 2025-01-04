@@ -1,9 +1,9 @@
 //! Implementation of `Validator::validate_module_handles`.
 
 use crate::{
-    arena::{HandleSet, BadHandle, BadRangeError},
-    diagnostic_filter::DiagnosticFilterNode,
+    arena::{BadHandle, BadRangeError, HandleSet},
     compact::expressions::ExpressionTracer,
+    diagnostic_filter::DiagnosticFilterNode,
     Handle,
 };
 
@@ -642,12 +642,13 @@ impl super::Validator {
         ExpressionTracer {
             types: Some(types),
             expressions: global_expressions,
-            constants: constants,
+            constants,
             types_used: &mut HandleSet::for_arena(types),
             constants_used: &mut HandleSet::for_arena(constants),
             expressions_used: &mut exprs,
             global_expressions_used: None,
-        }.trace_expression(expression);
+        }
+        .trace_expression(expression);
         if let Err(error) = handle.check_dep_iter(exprs.iter()) {
             return Err(InvalidHandleError::ForwardDependency(error));
         }
@@ -816,7 +817,7 @@ fn constant_deps() {
 #[test]
 fn well_ordered_expressions() {
     use super::Validator;
-    use crate::{ArraySize, Expression, PendingArraySize, Scalar, Span, Type, TypeInner, Literal};
+    use crate::{ArraySize, Expression, Literal, PendingArraySize, Scalar, Span, Type, TypeInner};
 
     let nowhere = Span::default();
 
@@ -832,7 +833,9 @@ fn well_ordered_expressions() {
     let ex_zero = m
         .global_expressions
         .append(Expression::ZeroValue(ty_u32), nowhere);
-    let expr = m.global_expressions.append(Expression::Literal(Literal::U32(0)), nowhere);
+    let expr = m
+        .global_expressions
+        .append(Expression::Literal(Literal::U32(0)), nowhere);
     let ty_arr = m.types.insert(
         Type {
             name: Some("bad_array".to_string()),

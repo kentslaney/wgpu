@@ -1,6 +1,6 @@
 use super::{HandleMap, HandleSet, ModuleMap};
-use crate::arena::{UniqueArena, Arena, Handle};
-use crate::compact::types::{TypeTracer};
+use crate::arena::{Arena, Handle, UniqueArena};
+use crate::compact::types::TypeTracer;
 
 pub struct ExpressionTracer<'tracer> {
     pub types: Option<&'tracer UniqueArena<crate::Type>>,
@@ -43,9 +43,9 @@ impl ExpressionTracer<'_> {
             x.trace_type(&x.types[y], handle2type);
         }
         TypeTracer {
-            types: &self.types.unwrap(),
-            types_used: &mut self.types_used,
-            expressions_used: &mut self.expressions_used,
+            types: self.types.unwrap(),
+            types_used: self.types_used,
+            expressions_used: self.expressions_used,
         }
         .trace_type(&self.types.unwrap()[x], handle2type)
     }
