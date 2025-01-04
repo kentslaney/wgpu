@@ -1,7 +1,7 @@
 //! Implementation of `Validator::validate_module_handles`.
 
 use crate::{
-    arena::{BadHandle, BadRangeError, HandleSet},
+    arena::{BadHandle, BadRangeError},
     diagnostic_filter::DiagnosticFilterNode,
     Handle,
 };
@@ -10,7 +10,7 @@ use crate::non_max_u32::NonMaxU32;
 use crate::{Arena, UniqueArena};
 
 #[cfg(feature = "compact")]
-use crate::compact::expressions::ExpressionTracer;
+use crate::{arena::HandleSet, compact::expressions::ExpressionTracer};
 
 use super::ValidationError;
 
@@ -659,7 +659,7 @@ impl super::Validator {
     }
 
     #[cfg(not(feature = "compact"))]
-    pub fn well_ordered_deps(
+    pub const fn well_ordered_deps(
         (_handle, _expression): (Handle<crate::Expression>, &crate::Expression),
         _constants: &Arena<crate::Constant>,
         _global_expressions: &Arena<crate::Expression>,
