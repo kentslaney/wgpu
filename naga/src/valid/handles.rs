@@ -634,6 +634,7 @@ impl super::Validator {
         })
     }
 
+    #[cfg(feature = "compact")]
     pub fn well_ordered_deps(
         (handle, expression): (Handle<crate::Expression>, &crate::Expression),
         constants: &Arena<crate::Constant>,
@@ -641,7 +642,6 @@ impl super::Validator {
         types: &UniqueArena<crate::Type>,
     ) -> Result<(), InvalidHandleError> {
         let mut exprs = HandleSet::for_arena(global_expressions);
-        #[cfg(feature = "compact")]
         ExpressionTracer {
             types: Some(types),
             expressions: global_expressions,
@@ -655,6 +655,16 @@ impl super::Validator {
         if let Err(error) = handle.check_dep_iter(exprs.iter()) {
             return Err(InvalidHandleError::ForwardDependency(error));
         }
+        Ok(())
+    }
+
+    #[cfg(not(feature = "compact"))]
+    pub fn well_ordered_deps(
+        (_handle, _expression): (Handle<crate::Expression>, &crate::Expression),
+        _constants: &Arena<crate::Constant>,
+        _global_expressions: &Arena<crate::Expression>,
+        _types: &UniqueArena<crate::Type>,
+    ) -> Result<(), InvalidHandleError> {
         Ok(())
     }
 }
