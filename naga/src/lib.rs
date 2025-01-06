@@ -999,6 +999,7 @@ pub struct GlobalVariable {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct LocalVariable {
     /// Name of the variable, if any.
     pub name: Option<String>,
@@ -1720,6 +1721,7 @@ pub enum SwitchValue {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SwitchCase {
     /// Value, upon which the case is considered true.
     pub value: SwitchValue,
@@ -1738,6 +1740,7 @@ pub struct SwitchCase {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum RayQueryFunction {
     /// Initialize the `RayQuery` object.
     Initialize {
@@ -1782,6 +1785,7 @@ pub enum RayQueryFunction {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum Statement {
     /// Emit a range of expressions, visible to all statements that follow in this block.
     ///
@@ -2077,6 +2081,7 @@ pub enum Statement {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct FunctionArgument {
     /// Name of the argument, if any.
     pub name: Option<String>,
@@ -2092,6 +2097,7 @@ pub struct FunctionArgument {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct FunctionResult {
     /// Type of the result.
     pub ty: Handle<Type>,
@@ -2105,6 +2111,7 @@ pub struct FunctionResult {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Function {
     /// Name of the function, if any.
     pub name: Option<String>,
@@ -2187,6 +2194,7 @@ pub struct Function {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct EntryPoint {
     /// Name of this entry point, visible externally.
     ///
@@ -2230,6 +2238,7 @@ pub enum PredeclaredType {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SpecialTypes {
     /// Type for `RayDesc`.
     ///
@@ -2321,6 +2330,7 @@ pub enum RayQueryIntersection {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Module {
     /// Arena for the types defined in this module.
     pub types: UniqueArena<Type>,

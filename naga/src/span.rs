@@ -345,7 +345,7 @@ impl<T> SpanProvider<T> for Arena<T> {
     }
 }
 
-impl<T> SpanProvider<T> for UniqueArena<T> {
+impl<T: Eq + std::hash::Hash> SpanProvider<T> for UniqueArena<T> {
     fn get_span(&self, handle: Handle<T>) -> Span {
         self.get_span(handle)
     }

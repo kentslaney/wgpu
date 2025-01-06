@@ -469,7 +469,7 @@ fn type_expression_interdependence() {
     let tmp4 = expression_needs_expression(&mut module, tmp3);
     let tmp5 = type_needs_expression(&mut module, tmp4);
     type_needed(&mut module, tmp5);
-    let b4 = format!("{:?}", module);
+    let b4 = module.clone();
     compact(&mut module);
-    assert!(b4 == format!("{:?}", module));
+    assert!(b4 == module);
 }

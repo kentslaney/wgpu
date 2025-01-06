@@ -94,6 +94,7 @@ impl StandardFilterableTriggeringRule {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DiagnosticFilter {
     pub new_severity: Severity,
     pub triggering_rule: FilterableTriggeringRule,
@@ -235,6 +236,7 @@ pub(crate) struct ConflictingDiagnosticRuleError {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DiagnosticFilterNode {
     pub inner: DiagnosticFilter,
     pub parent: Option<Handle<DiagnosticFilterNode>>,
