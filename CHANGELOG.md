@@ -205,7 +205,6 @@ By @ErichDonGubler in [#6456](https://github.com/gfx-rs/wgpu/pull/6456), [#6148]
 #### D3D12
 
 - Fix no longer showing software rasterizer adapters. By @wumpf in [#6843](https://github.com/gfx-rs/wgpu/pull/6843).
->>>>>>> upstream/trunk
 
 ### Examples
 
