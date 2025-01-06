@@ -461,15 +461,15 @@ fn type_expression_interdependence() {
         )
     };
     // borrow checker breaks without the tmp variables as of Rust 1.83.0
-    let tmp0 = type_needs_expression(&mut module, expr);
-    let tmp1 = type_needs_type(&mut module, tmp0);
-    let tmp2 = expression_needs_type(&mut module, tmp1);
-    expression_needed(&mut module, tmp2);
-    let tmp3 = expression_needs_type(&mut module, u32);
-    let tmp4 = expression_needs_expression(&mut module, tmp3);
-    let tmp5 = type_needs_expression(&mut module, tmp4);
-    type_needed(&mut module, tmp5);
-    let b4 = module.clone();
+    let expr_end = type_needs_expression(&mut module, expr);
+    let ty_trace = type_needs_type(&mut module, expr_end);
+    let expr_init = expression_needs_type(&mut module, ty_trace);
+    expression_needed(&mut module, expr_init);
+    let ty_end = expression_needs_type(&mut module, u32);
+    let expr_trace = expression_needs_expression(&mut module, ty_end);
+    let ty_init = type_needs_expression(&mut module, expr_trace);
+    type_needed(&mut module, ty_init);
+    let untouched = module.clone();
     compact(&mut module);
-    assert!(b4 == module);
+    assert!(module == untouched);
 }
