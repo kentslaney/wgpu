@@ -2225,11 +2225,11 @@ pub enum PredeclaredType {
     AtomicCompareExchangeWeakResult(Scalar),
     ModfResult {
         size: Option<VectorSize>,
-        width: Bytes,
+        scalar: Scalar,
     },
     FrexpResult {
         size: Option<VectorSize>,
-        width: Bytes,
+        scalar: Scalar,
     },
 }
 
