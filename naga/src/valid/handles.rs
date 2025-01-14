@@ -9,9 +9,6 @@ use crate::{
 use crate::non_max_u32::NonMaxU32;
 use crate::{Arena, UniqueArena};
 
-#[cfg(feature = "compact")]
-use crate::{arena::HandleSet, compact::expressions::ExpressionTracer};
-
 use super::ValidationError;
 
 use std::{convert::TryInto, hash::Hash};
