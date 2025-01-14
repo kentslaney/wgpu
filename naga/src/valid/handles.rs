@@ -127,7 +127,6 @@ impl super::Validator {
         // Validate the remaining expressions normally.
         for handle_and_expr in global_exprs_iter {
             Self::validate_const_expression_handles(handle_and_expr, constants, overrides)?;
-            Self::well_ordered_deps(handle_and_expr, constants, global_expressions, types)?;
         }
 
         let validate_type = |handle| Self::validate_type_handle(handle, types);
