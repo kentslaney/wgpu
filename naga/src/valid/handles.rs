@@ -734,40 +734,6 @@ impl super::Validator {
             | crate::Statement::Barrier(_) => Ok(()),
         })
     }
-
-    #[cfg(feature = "compact")]
-    pub fn well_ordered_deps(
-        (handle, expression): (Handle<crate::Expression>, &crate::Expression),
-        constants: &Arena<crate::Constant>,
-        global_expressions: &Arena<crate::Expression>,
-        types: &UniqueArena<crate::Type>,
-    ) -> Result<(), InvalidHandleError> {
-        let mut exprs = HandleSet::for_arena(global_expressions);
-        ExpressionTracer {
-            types: Some(types),
-            expressions: global_expressions,
-            constants,
-            types_used: &mut HandleSet::for_arena(types),
-            constants_used: &mut HandleSet::for_arena(constants),
-            expressions_used: &mut exprs,
-            global_expressions_used: None,
-        }
-        .trace_expression(expression);
-        if let Err(error) = handle.check_dep_iter(exprs.iter()) {
-            return Err(InvalidHandleError::ForwardDependency(error));
-        }
-        Ok(())
-    }
-
-    #[cfg(not(feature = "compact"))]
-    pub const fn well_ordered_deps(
-        (_handle, _expression): (Handle<crate::Expression>, &crate::Expression),
-        _constants: &Arena<crate::Constant>,
-        _global_expressions: &Arena<crate::Expression>,
-        _types: &UniqueArena<crate::Type>,
-    ) -> Result<(), InvalidHandleError> {
-        Ok(())
-    }
 }
 
 impl From<BadHandle> for ValidationError {
@@ -1004,8 +970,9 @@ fn well_ordered_expressions() {
     // Everything should be okay now.
     assert!(Validator::validate_module_handles(&m).is_ok());
 
-    // Mutate `ex_zero`'s type to `ty_arr`, introducing an out of order dependency.
-    // Validation should catch the problem.
+    // Mutate `ex_zero`'s type to `ty_arr`, introducing an out of order dependency. This doesn't
+    // introduce a cycle but is caught as an error by the same code because of the way cycles are
+    // detected.
     m.global_expressions[ex_zero] = Expression::ZeroValue(ty_arr);
     assert!(Validator::validate_module_handles(&m).is_err());
 }
