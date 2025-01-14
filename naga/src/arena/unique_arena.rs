@@ -23,8 +23,7 @@ use std::{fmt, hash, ops};
 ///
 /// [`Arena`]: super::Arena
 #[derive(Clone)]
-#[cfg_attr(test, derive(PartialEq))]
-pub struct UniqueArena<T: Eq + hash::Hash> {
+pub struct UniqueArena<T> {
     set: FastIndexSet<T>,
 
     /// Spans for the elements, indexed by handle.
@@ -36,7 +35,7 @@ pub struct UniqueArena<T: Eq + hash::Hash> {
     span_info: Vec<Span>,
 }
 
-impl<T: Eq + hash::Hash> UniqueArena<T> {
+impl<T> UniqueArena<T> {
     /// Create a new arena with no initial capacity allocated.
     pub fn new() -> Self {
         UniqueArena {
@@ -183,7 +182,7 @@ impl<T: Eq + hash::Hash> UniqueArena<T> {
     }
 }
 
-impl<T: Eq + hash::Hash> Default for UniqueArena<T> {
+impl<T> Default for UniqueArena<T> {
     fn default() -> Self {
         Self::new()
     }
@@ -195,7 +194,7 @@ impl<T: fmt::Debug + Eq + hash::Hash> fmt::Debug for UniqueArena<T> {
     }
 }
 
-impl<T: Eq + hash::Hash> ops::Index<Handle<T>> for UniqueArena<T> {
+impl<T> ops::Index<Handle<T>> for UniqueArena<T> {
     type Output = T;
     fn index(&self, handle: Handle<T>) -> &T {
         &self.set[handle.index()]

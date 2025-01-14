@@ -471,5 +471,9 @@ fn type_expression_interdependence() {
     type_needed(&mut module, ty_init);
     let untouched = module.clone();
     compact(&mut module);
-    assert!(module == untouched);
+    assert!(module.types.iter().collect::<Vec<_>>() == untouched.types.iter().collect::<Vec<_>>());
+    assert!(
+        module.global_expressions.iter().collect::<Vec<_>>()
+            == untouched.global_expressions.iter().collect::<Vec<_>>()
+    );
 }

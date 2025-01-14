@@ -6,7 +6,6 @@ use std::ops::{Deref, DerefMut, RangeBounds};
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "serialize", serde(transparent))]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct Block {
     body: Vec<Statement>,
     #[cfg_attr(feature = "serialize", serde(skip))]
