@@ -3,6 +3,10 @@ use crate::arena::{Arena, Handle, UniqueArena};
 use crate::compact::types::TypeTracer;
 
 pub struct ExpressionTracer<'tracer> {
+    /// The type arena used by `expressions`.
+    ///
+    /// Having this set as None will result in a shallow types_used set.
+    /// `Some` is used to ensure propagation through interleaved type and expression dependencies.
     pub types: Option<&'tracer UniqueArena<crate::Type>>,
     pub constants: &'tracer Arena<crate::Constant>,
 
