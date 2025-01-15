@@ -256,14 +256,13 @@ impl<'module> ModuleTracer<'module> {
     }
 
     fn type_expression_tandem(&mut self) {
-        // assume there are no cycles in the type/expression graph (guaranteed by validator)
-        // assume that the expressions are well ordered since they're not merged like types are
+        // assumes there are no cycles in the type/expression graph
+        // assumes all types' and expressions' dependencies go "high references low index"
+        // assumes that the expressions are well ordered even through a type dependency
         //     ie. expression A referring to a type referring to expression B has A > B.
-        //     (also guaranteed by validator)
 
-        //  1.  iterate over types, skipping unused ones
-        //      a.  if the type references an expression, mark it used
-        //      b.  repeat `a` while walking referenced types, marking them as used
+        //  1.  iterate backwards over types, skipping unused ones
+        //      a.  if the type references a type or expression, mark it used
         //  2.  iterate backwards over expressions, skipping unused ones
         //      a.  if the expression references a type
         //          i.  walk the type's dependency tree, marking the types and their referenced
@@ -272,11 +271,11 @@ impl<'module> ModuleTracer<'module> {
 
         // ┌───────────┐ ┌───────────┐
         // │Expressions│ │   Types   │
-        // │           ╵ ╵           │
+        // │           │ │           │
+        // │      ◄────────────┐     │
         // │        covered by │     │  So that back/forths starting with a type now start with an
         // │          step 1   │     │  expression instead.
-        // │      ◄────────────┘     │
-        // │           │ │           │
+        // │           ╷ ╷           │
         // │           │ │           │
         // │      ◄────────────┐     │  This arrow is only as needed.
         // │           │ │     │     │
