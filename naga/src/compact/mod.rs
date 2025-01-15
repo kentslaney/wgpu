@@ -269,21 +269,21 @@ impl<'module> ModuleTracer<'module> {
         //              expressions as used (types_used_insert instead of types_used.insert)
         //      b. if the expression references another expression, mark the latter as used
 
-        // ┌───────────┐ ┌───────────┐
-        // │Expressions│ │   Types   │
-        // │           │ │           │
-        // │      ◄────────────┐     │
-        // │        covered by │     │  So that back/forths starting with a type now start with an
-        // │          step 1   │     │  expression instead.
-        // │           ╷ ╷           │
-        // │           │ │           │
-        // │      ◄────────────┐     │  This arrow is only as needed.
-        // │           │ │     │     │
-        // │     ┌────────────►│     │
-        // │     │  covered by       │  This covers back/forths starting with an expression.
-        // │     │    step 2         │
-        // │           ╷ ╷           │
-        // └───────────┘ └───────────┘
+        // +-----------+ +-----------+
+        // |Expressions| |   Types   |
+        // |           | |           |
+        // |      ◄------------+     |
+        // |        covered by |     |  So that back/forths starting with a type now start with an
+        // |          step 1   |     |  expression instead.
+        // |           | |           |
+        // |           | |           |
+        // |      ◄------------+     |  This arrow is only as needed.
+        // |           | |     |     |
+        // |     +------------►|     |
+        // |     |  covered by       |  This covers back/forths starting with an expression.
+        // |     |    step 2         |
+        // |           | |           |
+        // +-----------+ +-----------+
 
         // 1
         self.as_type().trace_types();
