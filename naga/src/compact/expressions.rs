@@ -39,8 +39,9 @@ impl ExpressionTracer<'_> {
 
     fn trace_type(&mut self, tracing: Handle<crate::Type>) {
         fn type_used(caller: &mut TypeTracer, used: Handle<crate::Type>) {
-            caller.types_used.insert(used);
-            caller.trace_type(&caller.types[used], type_used);
+            if caller.types_used.insert(used) {
+                caller.trace_type(&caller.types[used], type_used);
+            }
         }
 
         TypeTracer {
