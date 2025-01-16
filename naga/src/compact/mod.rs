@@ -274,22 +274,21 @@ impl<'module> ModuleTracer<'module> {
             });
             max_dep.push(previous);
         }
-        //eprintln!("{:?}", self.module);
-        //eprintln!("{:?}\n{:?}", self.types_used, self.global_expressions_used);
         let mut exprs = self.module.global_expressions.iter().rev();
         let mut current = self.module.global_expressions.len();
-        for ((_, ty), dep) in self.module.types.iter().rev().zip(max_dep.iter().rev()) {
+        for ((ty_handle, ty), dep) in self.module.types.iter().rev().zip(max_dep.iter().rev()) {
             while current > *dep + 1 {
                 current -= 1;
-                if let Some((handle, expr)) = exprs.next() {
-                    if !self.global_expressions_used.contains(handle) {
+                if let Some((expr_handle, expr)) = exprs.next() {
+                    if self.global_expressions_used.contains(expr_handle) {
                         self.as_const_expression().trace_expression(expr);
                     }
                 }
             }
-            self.as_type().trace_type(ty);
+            if self.types_used.contains(ty_handle) {
+                self.as_type().trace_type(ty);
+            }
         }
-        //eprintln!("{:?}\n{:?}", self.types_used, self.global_expressions_used);
     }
 
     fn as_type(&mut self) -> types::TypeTracer {
