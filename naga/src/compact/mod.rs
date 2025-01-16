@@ -63,16 +63,6 @@ pub fn compact(module: &mut crate::Module) {
         }
     }
 
-    for (_, ty) in module.types.iter() {
-        if let crate::TypeInner::Array {
-            size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(size_expr)),
-            ..
-        } = ty.inner
-        {
-            module_tracer.global_expressions_used.insert(size_expr);
-        }
-    }
-
     // We assume that all functions are used.
     //
     // Observe which types, constant expressions, constants, and
@@ -111,12 +101,6 @@ pub fn compact(module: &mut crate::Module) {
         })
         .collect();
 
-    // Given that the above steps have marked all the constant
-    // expressions used directly by globals, constants, functions, and
-    // entry points, walk the constant expression arena to find all
-    // constant expressions used, directly or indirectly.
-    module_tracer.as_const_expression().trace_expressions();
-
     // Constants' initializers are taken care of already, because
     // expression tracing sees through constants. But we still need to
     // note type usage.
@@ -134,8 +118,7 @@ pub fn compact(module: &mut crate::Module) {
         }
     }
 
-    // Propagate usage through types.
-    module_tracer.as_type().trace_types();
+    module_tracer.type_expression_tandem();
 
     // Now that we know what is used and what is never touched,
     // produce maps from the `Handle`s that appear in `module` now to
@@ -269,6 +252,43 @@ impl<'module> ModuleTracer<'module> {
         for (_, &handle) in predeclared_types {
             self.types_used.insert(handle);
         }
+    }
+
+    fn type_expression_tandem(&mut self) {
+        let mut max_dep = Vec::with_capacity(self.module.types.len());
+        let mut previous = 0;
+        for (_handle, ty) in self.module.types.iter() {
+            previous = std::cmp::max(previous, match ty.inner {
+                crate::TypeInner::Array {
+                    base: _,
+                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
+                    stride: _,
+                }
+                | crate::TypeInner::BindingArray {
+                    base: _,
+                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
+                } => {
+                    expr.index()
+                },
+                _ => 0,
+            });
+            max_dep.push(previous);
+        }
+        eprintln!("{:?}", max_dep);
+        self.as_const_expression().trace_expressions();
+        self.as_type().trace_types();
+        // let exprs = self.module.expressions.iter().rev();
+        // let upcoming = self.module.expressions.len() - 1;
+        // for (ty, dep) in self.module.types.iter().zip(max_dep).rev() {
+        //     while upcoming > dep {
+        //         upcoming -= 1;
+        //         if let Some(expr) = exprs.next() {
+        //             if !self.global_expressions_used.contains(handle) {
+        //                 self.as_const_expression().trace_expression(expr);
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     fn as_type(&mut self) -> types::TypeTracer {
