@@ -458,6 +458,12 @@ fn type_expression_interdependence() {
             crate::Span::default(),
         )
     };
+    let cmp_modules = |mod0: &crate::Module, mod1: &crate::Module| {
+        return (mod0.types.iter().collect::<Vec<_>>()
+            == mod1.types.iter().collect::<Vec<_>>())
+            && (mod0.global_expressions.iter().collect::<Vec<_>>()
+                == mod1.global_expressions.iter().collect::<Vec<_>>());
+    };
     // borrow checker breaks without the tmp variables as of Rust 1.83.0
     let expr_end = type_needs_expression(&mut module, expr);
     let ty_trace = type_needs_type(&mut module, expr_end);
@@ -469,9 +475,8 @@ fn type_expression_interdependence() {
     type_needed(&mut module, ty_init);
     let untouched = module.clone();
     compact(&mut module);
-    assert!(module.types.iter().collect::<Vec<_>>() == untouched.types.iter().collect::<Vec<_>>());
-    assert!(
-        module.global_expressions.iter().collect::<Vec<_>>()
-            == untouched.global_expressions.iter().collect::<Vec<_>>()
-    );
+    assert!(cmp_modules(&module, &untouched));
+    expression_needs_type(&mut module, ty_trace);
+    compact(&mut module);
+    assert!(!cmp_modules(&module, &untouched));
 }
