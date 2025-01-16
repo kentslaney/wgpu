@@ -4,6 +4,7 @@ use crate::{Handle, UniqueArena};
 pub struct TypeTracer<'a> {
     pub types: &'a UniqueArena<crate::Type>,
     pub types_used: &'a mut HandleSet<crate::Type>,
+    pub expressions_used: &'a mut HandleSet<crate::Expression>,
 }
 
 impl TypeTracer<'_> {
@@ -24,35 +25,51 @@ impl TypeTracer<'_> {
                 continue;
             }
 
-            use crate::TypeInner as Ti;
-            match ty.inner {
-                // Types that do not contain handles.
-                Ti::Scalar { .. }
-                | Ti::Vector { .. }
-                | Ti::Matrix { .. }
-                | Ti::Atomic { .. }
-                | Ti::ValuePointer { .. }
-                | Ti::Image { .. }
-                | Ti::Sampler { .. }
-                | Ti::AccelerationStructure
-                | Ti::RayQuery => {}
+            self.trace_type(ty);
+        }
+    }
 
-                // Types that do contain handles.
-                Ti::Pointer { base, space: _ }
-                | Ti::Array {
-                    base,
-                    size: _,
-                    stride: _,
-                }
-                | Ti::BindingArray { base, size: _ } => {
-                    self.types_used.insert(base);
-                }
-                Ti::Struct {
-                    ref members,
-                    span: _,
-                } => {
-                    self.types_used.insert_iter(members.iter().map(|m| m.ty));
-                }
+    pub fn trace_type(&mut self, ty: &crate::Type) {
+        use crate::TypeInner as Ti;
+        match ty.inner {
+            // Types that do not contain handles.
+            Ti::Scalar { .. }
+            | Ti::Vector { .. }
+            | Ti::Matrix { .. }
+            | Ti::Atomic { .. }
+            | Ti::ValuePointer { .. }
+            | Ti::Image { .. }
+            | Ti::Sampler { .. }
+            | Ti::AccelerationStructure
+            | Ti::RayQuery => {}
+
+            // Types that do contain handles.
+            Ti::Array {
+                base,
+                size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
+                stride: _,
+            }
+            | Ti::BindingArray {
+                base,
+                size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
+            } => {
+                self.expressions_used.insert(expr);
+                self.types_used.insert(base);
+            }
+            Ti::Pointer { base, space: _ }
+            | Ti::Array {
+                base,
+                size: _,
+                stride: _,
+            }
+            | Ti::BindingArray { base, size: _ } => {
+                self.types_used.insert(base);
+            }
+            Ti::Struct {
+                ref members,
+                span: _,
+            } => {
+                self.types_used.insert_iter(members.iter().map(|m| m.ty));
             }
         }
     }

@@ -288,6 +288,7 @@ impl<'module> ModuleTracer<'module> {
         //             }
         //         }
         //     }
+        //     self.as_type().trace_type(ty);
         // }
     }
 
@@ -295,6 +296,7 @@ impl<'module> ModuleTracer<'module> {
         types::TypeTracer {
             types: &self.module.types,
             types_used: &mut self.types_used,
+            expressions_used: &mut self.global_expressions_used,
         }
     }
 
