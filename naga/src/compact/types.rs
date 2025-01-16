@@ -25,8 +25,8 @@ impl TypeTracer<'_> {
                 continue;
             }
 
-            self.trace_type(ty, |x, y| {
-                x.types_used.insert(y);
+            self.trace_type(ty, |caller, used| {
+                caller.types_used.insert(used);
             });
         }
     }
