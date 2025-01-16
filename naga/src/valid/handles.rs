@@ -1032,6 +1032,7 @@ fn override_init_deps() {
     assert!(Validator::validate_module_handles(&m).is_err());
 }
 
+#[test]
 fn well_ordered_expressions() {
     use super::Validator;
     use crate::{ArraySize, Expression, Literal, PendingArraySize, Scalar, Span, Type, TypeInner};
