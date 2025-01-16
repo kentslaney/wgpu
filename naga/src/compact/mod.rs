@@ -352,3 +352,110 @@ impl From<FunctionTracer<'_>> for FunctionMap {
         }
     }
 }
+
+#[test]
+fn type_expression_interdependence() {
+    let mut module: crate::Module = Default::default();
+    let u32 = module.types.insert(
+        crate::Type {
+            name: None,
+            inner: crate::TypeInner::Scalar(crate::Scalar {
+                kind: crate::ScalarKind::Uint,
+                width: 4,
+            }),
+        },
+        crate::Span::default(),
+    );
+    let expr = module.global_expressions.append(
+        crate::Expression::Literal(crate::Literal::U32(0)),
+        crate::Span::default(),
+    );
+    let type_needs_expression = |module: &mut crate::Module, handle| {
+        module.types.insert(
+            crate::Type {
+                name: None,
+                inner: crate::TypeInner::Array {
+                    base: u32,
+                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(handle)),
+                    stride: 4,
+                },
+            },
+            crate::Span::default(),
+        )
+    };
+    let expression_needs_type = |module: &mut crate::Module, handle| {
+        module
+            .global_expressions
+            .append(crate::Expression::ZeroValue(handle), crate::Span::default())
+    };
+    let expression_needs_expression = |module: &mut crate::Module, handle| {
+        module.global_expressions.append(
+            crate::Expression::Load { pointer: handle },
+            crate::Span::default(),
+        )
+    };
+    let type_needs_type = |module: &mut crate::Module, handle| {
+        module.types.insert(
+            crate::Type {
+                name: None,
+                inner: crate::TypeInner::Array {
+                    base: handle,
+                    size: crate::ArraySize::Dynamic,
+                    stride: 0,
+                },
+            },
+            crate::Span::default(),
+        )
+    };
+    let mut type_name_counter = 0;
+    let mut type_needed = |module: &mut crate::Module, handle| {
+        let name = Some(format!("type{}", type_name_counter));
+        type_name_counter += 1;
+        module.types.insert(
+            crate::Type {
+                name,
+                inner: crate::TypeInner::Array {
+                    base: handle,
+                    size: crate::ArraySize::Dynamic,
+                    stride: 0,
+                },
+            },
+            crate::Span::default(),
+        )
+    };
+    let mut override_name_counter = 0;
+    let mut expression_needed = |module: &mut crate::Module, handle| {
+        let name = Some(format!("override{}", override_name_counter));
+        override_name_counter += 1;
+        module.overrides.append(
+            crate::Override {
+                name,
+                id: None,
+                ty: u32,
+                init: Some(handle),
+            },
+            crate::Span::default(),
+        )
+    };
+    let cmp_modules = |mod0: &crate::Module, mod1: &crate::Module| {
+        return (mod0.types.iter().collect::<Vec<_>>()
+            == mod1.types.iter().collect::<Vec<_>>())
+            && (mod0.global_expressions.iter().collect::<Vec<_>>()
+                == mod1.global_expressions.iter().collect::<Vec<_>>());
+    };
+    // borrow checker breaks without the tmp variables as of Rust 1.83.0
+    let expr_end = type_needs_expression(&mut module, expr);
+    let ty_trace = type_needs_type(&mut module, expr_end);
+    let expr_init = expression_needs_type(&mut module, ty_trace);
+    expression_needed(&mut module, expr_init);
+    let ty_end = expression_needs_type(&mut module, u32);
+    let expr_trace = expression_needs_expression(&mut module, ty_end);
+    let ty_init = type_needs_expression(&mut module, expr_trace);
+    type_needed(&mut module, ty_init);
+    let untouched = module.clone();
+    compact(&mut module);
+    assert!(cmp_modules(&module, &untouched));
+    expression_needs_type(&mut module, ty_trace);
+    compact(&mut module);
+    assert!(!cmp_modules(&module, &untouched));
+}
