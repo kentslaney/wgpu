@@ -1,34 +1,12 @@
 use super::{HandleSet, ModuleMap};
-use crate::{Handle, UniqueArena};
+use crate::Handle;
 
 pub struct TypeTracer<'a> {
-    pub types: &'a UniqueArena<crate::Type>,
     pub types_used: &'a mut HandleSet<crate::Type>,
     pub expressions_used: &'a mut HandleSet<crate::Expression>,
 }
 
 impl TypeTracer<'_> {
-    /// Propagate usage through `self.types`, starting with `self.types_used`.
-    ///
-    /// Treat `self.types_used` as the initial set of "known
-    /// live" types, and follow through to identify all
-    /// transitively used types.
-    pub fn trace_types(&mut self) {
-        // We don't need recursion or a work list. Because an
-        // expression may only refer to other expressions that precede
-        // it in the arena, it suffices to make a single pass over the
-        // arena from back to front, marking the referents of used
-        // expressions as used themselves.
-        for (handle, ty) in self.types.iter().rev() {
-            // If this type isn't used, it doesn't matter what it uses.
-            if !self.types_used.contains(handle) {
-                continue;
-            }
-
-            self.trace_type(ty);
-        }
-    }
-
     pub fn trace_type(&mut self, ty: &crate::Type) {
         use crate::TypeInner as Ti;
         match ty.inner {

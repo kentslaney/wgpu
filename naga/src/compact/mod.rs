@@ -258,20 +258,21 @@ impl<'module> ModuleTracer<'module> {
         let mut max_dep = Vec::with_capacity(self.module.types.len());
         let mut previous = 0;
         for (_handle, ty) in self.module.types.iter() {
-            previous = std::cmp::max(previous, match ty.inner {
-                crate::TypeInner::Array {
-                    base: _,
-                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
-                    stride: _,
-                }
-                | crate::TypeInner::BindingArray {
-                    base: _,
-                    size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
-                } => {
-                    expr.index()
+            previous = std::cmp::max(
+                previous,
+                match ty.inner {
+                    crate::TypeInner::Array {
+                        base: _,
+                        size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
+                        stride: _,
+                    }
+                    | crate::TypeInner::BindingArray {
+                        base: _,
+                        size: crate::ArraySize::Pending(crate::PendingArraySize::Expression(expr)),
+                    } => expr.index(),
+                    _ => 0,
                 },
-                _ => 0,
-            });
+            );
             max_dep.push(previous);
         }
         let mut exprs = self.module.global_expressions.iter().rev();
@@ -293,7 +294,6 @@ impl<'module> ModuleTracer<'module> {
 
     fn as_type(&mut self) -> types::TypeTracer {
         types::TypeTracer {
-            types: &self.module.types,
             types_used: &mut self.types_used,
             expressions_used: &mut self.global_expressions_used,
         }
