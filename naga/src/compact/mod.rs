@@ -475,7 +475,12 @@ fn type_expression_interdependence() {
     let untouched = module.clone();
     compact(&mut module);
     assert!(cmp_modules(&module, &untouched));
-    expression_needs_type(&mut module, ty_trace);
-    compact(&mut module);
+    let unused_expr = module.global_expressions.append(
+        crate::Expression::Literal(crate::Literal::U32(1)),
+        crate::Span::default(),
+    );
+    type_needs_expression(&mut module, unused_expr);
     assert!(!cmp_modules(&module, &untouched));
+    compact(&mut module);
+    assert!(cmp_modules(&module, &untouched));
 }
