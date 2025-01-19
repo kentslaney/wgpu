@@ -290,6 +290,11 @@ impl<'module> ModuleTracer<'module> {
                 self.as_type().trace_type(ty);
             }
         }
+        for (expr_handle, expr) in exprs {
+            if self.global_expressions_used.contains(expr_handle) {
+                self.as_const_expression().trace_expression(expr);
+            }
+        }
     }
 
     fn as_type(&mut self) -> types::TypeTracer {
