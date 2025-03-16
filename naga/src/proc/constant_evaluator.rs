@@ -812,7 +812,8 @@ impl<'a> ConstantEvaluator<'a> {
                     Ok(self.append_expr(expr, span, ExpressionKind::Override))
                 }
                 Behavior::Wgsl(WgslRestrictions::Const(_)) => {
-                    Err(ConstantEvaluatorError::OverrideExpr)
+                    // TODO: this isn't what Const is supposed to be doing
+                    self.try_eval_and_append_impl(&expr, span)
                 }
                 Behavior::Glsl(_) => {
                     unreachable!()
@@ -862,7 +863,9 @@ impl<'a> ConstantEvaluator<'a> {
                 // This is mainly done to avoid having constants pointing to other constants.
                 Ok(self.constants[c].init)
             }
-            Expression::Override(_) => Err(ConstantEvaluatorError::Override),
+            Expression::Override(c) => {
+                self.overrides[c].init.ok_or(ConstantEvaluatorError::Override)
+            }
             Expression::Literal(_) | Expression::ZeroValue(_) | Expression::Constant(_) => {
                 self.register_evaluated_expr(expr.clone(), span)
             }

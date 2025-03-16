@@ -33,7 +33,6 @@ _atomic_compare_exchange_resultUint4_ naga_atomic_compare_exchange_weak_explicit
     );
     return _atomic_compare_exchange_resultUint4_{cmp, swapped};
 }
-constant int o = 2;
 
 kernel void f(
   metal::uint3 __local_invocation_id [[thread_position_in_threadgroup]]
@@ -43,6 +42,6 @@ kernel void f(
         metal::atomic_store_explicit(&a, 0, metal::memory_order_relaxed);
     }
     metal::threadgroup_barrier(metal::mem_flags::mem_threadgroup);
-    _atomic_compare_exchange_resultUint4_ _e5 = naga_atomic_compare_exchange_weak_explicit(&a, 2u, 1u);
+    _atomic_compare_exchange_resultUint4_ _e4 = naga_atomic_compare_exchange_weak_explicit(&a, static_cast<uint>(2), 1u);
     return;
 }

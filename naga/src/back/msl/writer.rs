@@ -1569,6 +1569,17 @@ impl<W: Write> Writer<W> {
                 put_expression(self, ctx, value)?;
                 write!(self.out, ")")?;
             }
+            crate::Expression::Override(handle) => {
+                match &module.overrides[handle].init {
+                    Some(r#override) => self.put_const_expression(
+                        *r#override,
+                        module,
+                        mod_info,
+                        &module.global_expressions,
+                    ),
+                    None => Err(Error::Override),
+                }?
+            }
             _ => {
                 return Err(Error::Override);
             }
@@ -1609,6 +1620,7 @@ impl<W: Write> Writer<W> {
         match *expression {
             crate::Expression::Literal(_)
             | crate::Expression::Constant(_)
+            | crate::Expression::Override(_)
             | crate::Expression::ZeroValue(_)
             | crate::Expression::Compose { .. }
             | crate::Expression::Splat { .. } => {
@@ -1622,7 +1634,6 @@ impl<W: Write> Writer<W> {
                     |writer, context, expr| writer.put_expression(expr, context, true),
                 )?;
             }
-            crate::Expression::Override(_) => return Err(Error::Override),
             crate::Expression::Access { base, .. }
             | crate::Expression::AccessIndex { base, .. } => {
                 // This is an acceptable place to generate a `ReadZeroSkipWrite` check.
