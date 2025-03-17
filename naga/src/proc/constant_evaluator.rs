@@ -421,9 +421,10 @@ impl ExpressionKindTracker {
     fn type_of_with_expr(&self, expr: &Expression) -> ExpressionKind {
         use crate::MathFunction as Mf;
         match *expr {
-            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::Constant(_) | Expression::Override(_) => {
+            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::Constant(_) => {
                 ExpressionKind::ImplConst
             }
+            Expression::Override(_) => ExpressionKind::Override,
             Expression::Compose { ref components, .. } => {
                 let mut expr_type = ExpressionKind::ImplConst;
                 for component in components {
