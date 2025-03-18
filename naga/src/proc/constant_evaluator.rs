@@ -828,12 +828,22 @@ impl<'a> ConstantEvaluator<'a> {
                 }
             }
             ExpressionKind::Override => match self.behavior {
-                Behavior::Wgsl(WgslRestrictions::Override | WgslRestrictions::Runtime(_)) => {
+                Behavior::Wgsl(WgslRestrictions::Override) => {
                     Ok(self.append_expr(expr, span, ExpressionKind::Override))
                 }
-                Behavior::Wgsl(WgslRestrictions::Const(_)) => {
-                    // TODO: this isn't what Const is supposed to be doing
-                    self.try_eval_and_append_impl(&expr, span)
+                Behavior::Wgsl(WgslRestrictions::Const(_) | WgslRestrictions::Runtime(_)) => {
+                    let eval_result = self.try_eval_and_append_impl(&expr, span);
+                    if self.behavior.has_runtime_restrictions()
+                        && matches!(
+                            eval_result,
+                            Err(ConstantEvaluatorError::NotImplemented(_)
+                                | ConstantEvaluatorError::InvalidBinaryOpArgs,)
+                        )
+                    {
+                        Ok(self.append_expr(expr, span, ExpressionKind::Override))
+                    } else {
+                        eval_result
+                    }
                 }
                 Behavior::Glsl(_) => {
                     unreachable!()
@@ -2190,6 +2200,7 @@ impl<'a> ConstantEvaluator<'a> {
         match expressions[expr] {
             ref expr @ (Expression::Literal(_)
             | Expression::Constant(_)
+            | Expression::Override(_)
             | Expression::ZeroValue(_)) => self.register_evaluated_expr(expr.clone(), span),
             Expression::Compose { ty, ref components } => {
                 let mut components = components.clone();
@@ -2264,6 +2275,7 @@ impl<'a> ConstantEvaluator<'a> {
         let resolution = match self.expressions[expr] {
             Ex::Literal(ref literal) => Tr::Value(literal.ty_inner()),
             Ex::Constant(c) => Tr::Handle(self.constants[c].ty),
+            Ex::Override(c) => Tr::Handle(self.overrides[c].ty),
             Ex::ZeroValue(ty) | Ex::Compose { ty, .. } => Tr::Handle(ty),
             Ex::Splat { size, value } => {
                 let Tr::Value(TypeInner::Scalar(scalar)) = self.resolve_type(value)? else {
