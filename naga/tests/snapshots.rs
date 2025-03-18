@@ -606,7 +606,9 @@ fn write_output_spv_inner(
     use rspirv::binary::Disassemble;
     println!("Generating SPIR-V for {:?}", input.file_name);
     let spv = spv::write_vec(module, info, options, pipeline_options).unwrap();
-    if format!("{:?}", input.file_name) == "\"overrides.wgsl\"" { panic!(); }
+    if format!("{:?}", input.file_name) == "\"overrides.wgsl\"" {
+        panic!();
+    }
     let dis = rspirv::dr::load_words(spv)
         .expect("Produced invalid SPIR-V")
         .disassemble();

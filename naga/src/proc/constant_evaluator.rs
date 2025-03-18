@@ -759,10 +759,7 @@ impl<'a> ConstantEvaluator<'a> {
                     // module's constant expression arena?
                     if let Some(function_local_data) = self.function_local_data() {
                         // Deep-copy the constant's value into our arena.
-                        self.copy_from(
-                            global,
-                            function_local_data.global_expressions,
-                        )
+                        self.copy_from(global, function_local_data.global_expressions)
                     } else {
                         // "See through" the constant and use its initializer.
                         Ok(global)
@@ -893,12 +890,13 @@ impl<'a> ConstantEvaluator<'a> {
                 // This is mainly done to avoid having constants pointing to other constants.
                 Ok(self.constants[c].init)
             }
-            Expression::Override(c) if self.is_global_arena() => {
-                self.overrides[c].init.ok_or(ConstantEvaluatorError::Override)
-            }
-            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::Constant(_) | Expression::Override(_) => {
-                self.register_evaluated_expr(expr.clone(), span)
-            }
+            Expression::Override(c) if self.is_global_arena() => self.overrides[c]
+                .init
+                .ok_or(ConstantEvaluatorError::Override),
+            Expression::Literal(_)
+            | Expression::ZeroValue(_)
+            | Expression::Constant(_)
+            | Expression::Override(_) => self.register_evaluated_expr(expr.clone(), span),
             Expression::Compose { ty, ref components } => {
                 let components = components
                     .iter()

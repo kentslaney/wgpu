@@ -12,8 +12,8 @@ use crate::{
     arena::HandleVec,
     proc::{ConstantEvaluator, ConstantEvaluatorError, Emitter},
     valid::{Capabilities, ModuleInfo, ValidationError, ValidationFlags, Validator},
-    Arena, Block, Expression, Function, Handle, Literal, Module, Override, Range, Scalar,
-    Span, Statement, TypeInner, WithSpan,
+    Arena, Block, Expression, Function, Handle, Literal, Module, Override, Range, Scalar, Span,
+    Statement, TypeInner, WithSpan,
 };
 
 #[derive(Error, Debug, Clone)]
@@ -136,7 +136,7 @@ pub fn process_overrides<'a>(
                     *init = adjusted_global_expressions[*init];
                 }
             }
-            _ => {},
+            _ => {}
         };
         let mut evaluator = ConstantEvaluator::for_wgsl_module(
             &mut module,
@@ -272,12 +272,15 @@ fn process_override(
         return Err(PipelineConstantError::MissingValue(key.to_string()));
     };
 
-    module.overrides.append(Override {
-        name: mem::take(&mut r#override.name),
-        id: r#override.id,
-        ty: r#override.ty,
-        init: Some(init),
-    }, *span);
+    module.overrides.append(
+        Override {
+            name: mem::take(&mut r#override.name),
+            id: r#override.id,
+            ty: r#override.ty,
+            init: Some(init),
+        },
+        *span,
+    );
     Ok(())
 }
 

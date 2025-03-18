@@ -1569,17 +1569,15 @@ impl<W: Write> Writer<W> {
                 put_expression(self, ctx, value)?;
                 write!(self.out, ")")?;
             }
-            crate::Expression::Override(handle) => {
-                match &module.overrides[handle].init {
-                    Some(r#override) => self.put_const_expression(
-                        *r#override,
-                        module,
-                        mod_info,
-                        &module.global_expressions,
-                    ),
-                    None => Err(Error::Override),
-                }?
-            }
+            crate::Expression::Override(handle) => match &module.overrides[handle].init {
+                Some(r#override) => self.put_const_expression(
+                    *r#override,
+                    module,
+                    mod_info,
+                    &module.global_expressions,
+                ),
+                None => Err(Error::Override),
+            }?,
             _ => {
                 return Err(Error::Override);
             }
