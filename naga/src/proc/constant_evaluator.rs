@@ -752,23 +752,6 @@ impl<'a> ConstantEvaluator<'a> {
                     Ok(self.constants[c].init)
                 }
             }
-            Expression::Override(c) => {
-                let init = self.overrides[c].init;
-                if let Some(global) = init {
-                    // Are we working in a function's expression arena, or the
-                    // module's constant expression arena?
-                    if let Some(function_local_data) = self.function_local_data() {
-                        // Deep-copy the constant's value into our arena.
-                        self.copy_from(global, function_local_data.global_expressions)
-                    } else {
-                        // "See through" the constant and use its initializer.
-                        Ok(global)
-                    }
-                } else {
-                    self.check(expr)?;
-                    Ok(expr)
-                }
-            }
             _ => {
                 self.check(expr)?;
                 Ok(expr)
@@ -825,22 +808,11 @@ impl<'a> ConstantEvaluator<'a> {
                 }
             }
             ExpressionKind::Override => match self.behavior {
-                Behavior::Wgsl(WgslRestrictions::Override) => {
+                Behavior::Wgsl(WgslRestrictions::Override | WgslRestrictions::Runtime(_)) => {
                     Ok(self.append_expr(expr, span, ExpressionKind::Override))
                 }
-                Behavior::Wgsl(WgslRestrictions::Const(_) | WgslRestrictions::Runtime(_)) => {
-                    let eval_result = self.try_eval_and_append_impl(&expr, span);
-                    if self.behavior.has_runtime_restrictions()
-                        && matches!(
-                            eval_result,
-                            Err(ConstantEvaluatorError::NotImplemented(_)
-                                | ConstantEvaluatorError::InvalidBinaryOpArgs,)
-                        )
-                    {
-                        Ok(self.append_expr(expr, span, ExpressionKind::Override))
-                    } else {
-                        eval_result
-                    }
+                Behavior::Wgsl(WgslRestrictions::Const(_)) => {
+                    Err(ConstantEvaluatorError::OverrideExpr)
                 }
                 Behavior::Glsl(_) => {
                     unreachable!()
@@ -890,13 +862,10 @@ impl<'a> ConstantEvaluator<'a> {
                 // This is mainly done to avoid having constants pointing to other constants.
                 Ok(self.constants[c].init)
             }
-            Expression::Override(c) if self.is_global_arena() => self.overrides[c]
-                .init
-                .ok_or(ConstantEvaluatorError::Override),
-            Expression::Literal(_)
-            | Expression::ZeroValue(_)
-            | Expression::Constant(_)
-            | Expression::Override(_) => self.register_evaluated_expr(expr.clone(), span),
+            Expression::Override(_) => Err(ConstantEvaluatorError::Override),
+            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::Constant(_) => {
+                self.register_evaluated_expr(expr.clone(), span)
+            }
             Expression::Compose { ty, ref components } => {
                 let components = components
                     .iter()
@@ -2198,7 +2167,6 @@ impl<'a> ConstantEvaluator<'a> {
         match expressions[expr] {
             ref expr @ (Expression::Literal(_)
             | Expression::Constant(_)
-            | Expression::Override(_)
             | Expression::ZeroValue(_)) => self.register_evaluated_expr(expr.clone(), span),
             Expression::Compose { ty, ref components } => {
                 let mut components = components.clone();
@@ -2273,7 +2241,6 @@ impl<'a> ConstantEvaluator<'a> {
         let resolution = match self.expressions[expr] {
             Ex::Literal(ref literal) => Tr::Value(literal.ty_inner()),
             Ex::Constant(c) => Tr::Handle(self.constants[c].ty),
-            Ex::Override(c) => Tr::Handle(self.overrides[c].ty),
             Ex::ZeroValue(ty) | Ex::Compose { ty, .. } => Tr::Handle(ty),
             Ex::Splat { size, value } => {
                 let Tr::Value(TypeInner::Scalar(scalar)) = self.resolve_type(value)? else {
